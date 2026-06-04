@@ -8,5 +8,5 @@ export interface TemplateFile {
 export interface TemplateDefinition {
   name: TemplateName;
   description: string;
-  files: (projectName: string) => TemplateFile[];
+  files: (projectName: string) => Promise<TemplateFile[]> | TemplateFile[];
 }

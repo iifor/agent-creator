@@ -18,7 +18,9 @@ Only `tool-agent` is supported in v0.1. Unsupported templates return a clear err
 
 Validates that the current directory looks like a generated Agent project.
 
-It checks required files, basic config shape, template value, and whether configured tools have matching tool files.
+It checks required files, transpiles and loads `agent.config.ts`, validates the default export with the root zod `AgentConfig` schema, and verifies that configured tools have matching tool files.
+
+If config loading fails, confirm that `agent.config.ts` has a valid default export and only uses config-time imports that can be resolved during validation.
 
 ## `agent version`
 

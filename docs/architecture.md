@@ -23,7 +23,7 @@ Shared helpers live in `src/utils/`, schemas in `src/schemas/`, and public inter
 
 Templates are registered in `src/templates/templateRegistry.ts`.
 
-v0.1 registers only `tool-agent`. The generated files are produced by `src/templates/tool-agent/generatedFiles.ts`.
+v0.1 registers only `tool-agent`. The generated files live under `src/templates/tool-agent/files/` and are loaded by `src/templates/tool-agent/fileTemplate.ts`.
 
 ## Generated Runtime
 

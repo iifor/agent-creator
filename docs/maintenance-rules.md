@@ -12,7 +12,15 @@ AI agents and developers must read `docs/README.md` before inspecting source cod
 - Key type, schema, or config changes require updates to `docs/generated-agent-runtime.md`.
 - Trace format or debugging behavior changes require updates to `docs/trace-and-debugging.md`.
 - Test command or acceptance changes require updates to `docs/testing.md`.
+- Version, release, template compatibility, or config compatibility changes require updates to `docs/versioning.md` and `CHANGELOG.md`.
 - Task status changes require updates to `todo.md`.
+
+## Enforced Version and Commit Rules
+
+- Do not manually edit package versions except when maintaining the version scripts themselves.
+- Use `npm run build -- --release fix|hotfix|feat|breaking` for versioned builds.
+- Use `npm run build:plain` only for internal validation where versions must not change.
+- Commit messages must pass the Husky `commit-msg` hook and use Conventional Commits.
 
 ## Code Conventions
 

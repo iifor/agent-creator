@@ -12,6 +12,7 @@ This directory is the source of truth for understanding Agent Creator.
    - Generated runtime: `generated-agent-runtime.md`
    - Trace/debugging: `trace-and-debugging.md`
    - Tests: `testing.md`
+   - Versioning: `versioning.md`
    - Maintenance rules: `maintenance-rules.md`
    - AI handoff: `ai-handoff.md`
 

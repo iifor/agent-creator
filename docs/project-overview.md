@@ -15,6 +15,7 @@ Agent Creator is an engineering scaffold and runtime skeleton for Agent apps. It
 - Record trace files
 - Add new tool skeletons
 - Provide docs-first maintenance rules
+- Provide layered version metadata for generated projects
 
 ## Out of Scope
 

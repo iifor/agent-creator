@@ -15,7 +15,7 @@ Do not begin by globally scanning all code.
 ## Common Task Map
 
 - CLI change: read `docs/cli.md`, then `src/cli/cli.ts` and the relevant command file.
-- Template change: read `docs/template-system.md`, then `src/templates/tool-agent/generatedFiles.ts`.
+- Template change: read `docs/template-system.md`, then `src/templates/tool-agent/files/` and `src/templates/tool-agent/fileTemplate.ts`.
 - Generated runtime change: read `docs/generated-agent-runtime.md`, then the relevant generated runtime function in the template.
 - Trace change: read `docs/trace-and-debugging.md`, then trace command and generated trace modules.
 - Test change: read `docs/testing.md`, then focused tests.

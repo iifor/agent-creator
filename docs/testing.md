@@ -8,7 +8,7 @@ Root tests cover:
 - Create command
 - Validate command
 
-The root Vitest config excludes `demo-agent/**` so local generated acceptance projects do not become part of the root test suite.
+The root Vitest config excludes `demo-agent/**` and `src/templates/**/files/**` so local generated acceptance projects and physical template test files do not become part of the root test suite.
 
 Run:
 

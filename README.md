@@ -23,7 +23,7 @@ If a change modifies project flow, module boundaries, key APIs, data structures,
 
 ```bash
 npm install
-npm run build
+npm run build -- --release fix
 npm test
 npm link
 

@@ -19,7 +19,7 @@ export async function createCommand(name: string, options: CreateOptions): Promi
     await fs.rm(targetDir, { recursive: true, force: true });
   }
 
-  for (const file of template.files(name)) {
+  for (const file of await template.files(name)) {
     await writeFileEnsured(path.join(targetDir, file.path), file.content);
   }
 

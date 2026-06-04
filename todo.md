@@ -4,11 +4,19 @@
 
 ## Pending
 
-- [ ] Add richer validate schema loading for generated `agent.config.ts`
-- [ ] Add physical template files if generated template strings become hard to maintain
 
 ## Done
 
+- [x] Add forced build version bump script
+- [x] Add commit message enforcement hook
+- [x] Add tests for version and commit scripts
+- [x] Add versioning documentation and changelog
+- [x] Add generated project config version metadata
+- [x] Validate supported generated config versions
+- [x] Source CLI version from package.json
+- [x] Add physical template files for generated `tool-agent`
+- [x] Exclude physical template files from root test suite
+- [x] Add richer validate schema loading for generated `agent.config.ts`
 - [x] Add explicit `agent version` command
 - [x] Add explicit `agent help` command
 - [x] Verify root build and tests

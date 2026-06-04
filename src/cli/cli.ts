@@ -4,13 +4,14 @@ import { createCommand } from '../commands/create.js';
 import { devCommand } from '../commands/dev.js';
 import { traceCommand } from '../commands/trace.js';
 import { validateCommand } from '../commands/validate.js';
+import { CLI_VERSION } from '../version.js';
 
 export function buildCli(): Command {
   const program = new Command();
   program
     .name('agent')
     .description('Create and maintain runnable Agent projects.')
-    .version('0.1.0');
+    .version(CLI_VERSION);
 
   program
     .command('create')
