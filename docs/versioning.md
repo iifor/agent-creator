@@ -108,6 +108,23 @@ npm test
 node ../dist/src/index.js validate
 ```
 
+Release dependency rule:
+
+- Any package statically imported by `src/**/*.ts` at runtime must be listed in `dependencies`, not only `devDependencies`.
+- The test suite includes a runtime dependency guard to catch missing published-package dependencies before npm release.
+- `npm pack --dry-run` should show only the publish allowlist, not source tests or stale `dist` artifacts.
+- The `prepare` script installs Husky when possible but must not block npm packing/publishing in restricted environments.
+- `npm run check:package` enforces the publish allowlist and fails if source, tests, demo projects, traces, or local config files enter the tarball.
+
+Publish commands:
+
+```bash
+npm run publish
+npm run publish:beta
+```
+
+Both publish commands run `build:plain`, tests, package content checks, and then `npm publish --access public --tag <tag>`.
+
 Release steps:
 
 1. Run `npm run build -- --release <type>` to bump versions and compile.

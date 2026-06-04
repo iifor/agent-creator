@@ -21,6 +21,7 @@ AI agents and developers must read `docs/README.md` before inspecting source cod
 - Use `npm run build -- --release fix|hotfix|feat|breaking` for versioned builds.
 - Use `npm run build:plain` only for internal validation where versions must not change.
 - Commit messages must pass the Husky `commit-msg` hook and use Conventional Commits.
+- Packages imported by `src/**/*.ts` at runtime must be declared in `dependencies`; `devDependencies` is only for local tooling and tests.
 
 ## Code Conventions
 

@@ -7,6 +7,12 @@
 
 ## Done
 
+- [x] Fix published CLI runtime dependency for `typescript`
+- [x] Add runtime dependency guard test
+- [x] Add package publish allowlist and clean build step
+- [x] Add publish and publish:beta scripts with package content checks
+- [x] Exclude root tests from published build output
+- [x] Make Husky prepare non-blocking for npm pack/publish
 - [x] Add forced build version bump script
 - [x] Add commit message enforcement hook
 - [x] Add tests for version and commit scripts

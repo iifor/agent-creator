@@ -26,6 +26,8 @@ npm install
 npm run build -- --release fix
 npm test
 npm link
+npm run check:package
+npm run publish:beta
 
 agent create demo-agent
 cd demo-agent

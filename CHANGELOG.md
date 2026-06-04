@@ -6,6 +6,11 @@ All notable changes to Agent Creator are recorded here.
 
 ### Added
 
+- Added publish package allowlist and build clean step to avoid stale or test artifacts in npm tarballs.
+- Added `publish`, `publish:beta`, and `check:package` scripts to enforce npm package contents before publishing.
+- Removed compiled root test files from published npm tarballs.
+- Made Husky prepare non-blocking for restricted npm pack/publish environments.
+- Added a runtime dependency guard test so published CLI imports must exist in production dependencies.
 - Added forced build-time version bumping through `npm run build -- --release <type>`.
 - Added Conventional Commit enforcement through a Husky `commit-msg` hook.
 - Added `tool-agent` project generation.
@@ -17,6 +22,7 @@ All notable changes to Agent Creator are recorded here.
 
 ### Changed
 
+- Moved `typescript` to production dependencies because `agent validate` uses it at CLI runtime.
 - Moved `tool-agent` generation from large inline strings to physical template files.
 - `agent validate` now loads generated config and checks schema/config version compatibility.
 
