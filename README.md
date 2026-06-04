@@ -1,0 +1,48 @@
+# Agent Creator
+
+Agent Creator is a docs-first CLI for generating runnable, testable Agent applications.
+
+It is not a chatbot generator and not a prompt template collection. v0.1 focuses on one reliable loop: create a `tool-agent`, run it locally, test it, validate it, inspect traces, and add tools.
+
+## Docs-First Rule
+
+AI agents and developers must understand this project through `docs/` first.
+
+Required reading order:
+
+1. `docs/README.md`
+2. `docs/project-overview.md`
+3. The task-specific docs page
+4. Only the code files relevant to the task
+
+Do not start by globally scanning the codebase to infer the architecture.
+
+If a change modifies project flow, module boundaries, key APIs, data structures, runtime config, workflows, or important conventions, update `docs/` in the same change.
+
+## Commands
+
+```bash
+npm install
+npm run build
+npm test
+npm link
+
+agent create demo-agent
+cd demo-agent
+npm install
+npm run dev
+agent validate
+agent trace --latest
+agent add tool calendar
+agent version
+agent help
+```
+
+## v0.1 Scope
+
+- CLI: `create`, `validate`, `dev`, `trace`, `add tool`
+- Template: `tool-agent`
+- Runtime: mock LLM, mock tools, guard, planner, executor, output validator, error recovery, trace
+- Docs: project knowledge entrypoint for humans and AI
+
+Deferred: real LLM providers, RAG, multi-agent templates, Web Dev Console, plugin marketplace, `add guard`, and `add workflow`.

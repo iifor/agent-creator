@@ -1,0 +1,25 @@
+{
+  "name": "agent-creator",
+  "version": "0.1.0",
+  "description": "Docs-first CLI scaffolding for runnable, testable AI agent apps.",
+  "type": "module",
+  "bin": {
+    "agent": "./dist/src/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "test": "vitest run",
+    "validate": "tsx src/index.ts validate"
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.12",
+    "tsx": "^4.16.2",
+    "typescript": "^5.5.4",
+    "vitest": "^2.0.5"
+  }
+}
