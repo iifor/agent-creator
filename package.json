@@ -18,6 +18,7 @@
     "dev": "tsx src/index.ts",
     "test": "vitest run",
     "validate": "tsx src/index.ts validate",
+    "commit": "node scripts/commit.mjs",
     "check:package": "node scripts/check-package-contents.mjs",
     "publish": "node scripts/publish.mjs --tag latest",
     "publish:beta": "node scripts/publish.mjs --tag beta",

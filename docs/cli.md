@@ -50,27 +50,6 @@ Options:
 - `--list` lists trace IDs
 - `--id <traceId>` shows one trace
 
-## `agent commit`
-
-Creates a Conventional Commit from files already staged with Git.
-
-By default it interactively asks for:
-
-- commit type
-- optional scope
-- commit description
-
-Supported types are `feat`, `fix`, `hotfix`, `docs`, `test`, `refactor`, `chore`, `build`, `ci`, `perf`, and `revert`.
-
-Options:
-
-- `--type <type>` skips the type prompt
-- `--scope <scope>` sets an optional scope
-- `--message <message>` skips the description prompt
-- `--breaking` adds `!` before the colon
-
-The command does not stage files automatically. It fails with repair guidance when run outside a Git repository or when no staged changes exist.
-
 ## `agent add tool <toolName>`
 
 Adds a tool skeleton in a generated project.

@@ -53,7 +53,14 @@ Use Conventional Commits:
 
 Commit messages are enforced by `.husky/commit-msg`, which calls `scripts/check-commit-msg.mjs`.
 
-`agent commit` provides an interactive type selector and builds a valid Conventional Commit message for already staged changes.
+`npm run commit` provides an interactive type selector and builds a valid Conventional Commit message for already staged changes in the Agent Creator repository.
+
+It can also run non-interactively:
+
+```bash
+npm run commit -- --type feat --scope cli --message "add command"
+npm run commit -- --type refactor --message "change config" --breaking
+```
 
 Allowed commit types are:
 

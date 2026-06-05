@@ -28,6 +28,7 @@ npm test
 npm link
 npm run check:package
 npm run publish:beta
+npm run commit
 
 agent create demo-agent
 cd demo-agent
@@ -36,14 +37,13 @@ npm run dev
 agent validate
 agent trace --latest
 agent add tool calendar
-agent commit
 agent version
 agent help
 ```
 
 ## v0.1 Scope
 
-- CLI: `create`, `validate`, `dev`, `trace`, `commit`, `add tool`
+- CLI: `create`, `validate`, `dev`, `trace`, `add tool`
 - Capability: `agent-core`
 - Runtime: OpenAI-compatible LLM provider, local example tools, guard, planner, executor, output validator, error recovery, trace
 - Docs: project knowledge entrypoint for humans and AI

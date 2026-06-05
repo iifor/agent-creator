@@ -7,7 +7,7 @@
 
 ## Done
 
-- [x] Add interactive Conventional Commit command
+- [x] Add interactive project commit script
 - [x] Add optional Next.js service example shell overlay
 - [x] Add service-aware project validation
 - [x] Update package checks for service overlay layout
