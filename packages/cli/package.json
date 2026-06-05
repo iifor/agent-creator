@@ -1,5 +1,5 @@
 {
-  "name": "agent-creator-cli",
+  "name": "@agent-creator/cli",
   "version": "0.4.2",
   "description": "CLI for creating projects powered by @agent-creator/core.",
   "type": "module",
