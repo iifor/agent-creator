@@ -62,22 +62,27 @@ export class DefaultExecutor implements Executor {
         lastOutput = { success: true, intent: 'response', message: step.message, data: step.data, traceId: context.traceId };
       } else if (step.type === 'skill') {
         await context.trace.append({ type: 'skill.start', data: { name: step.skill } });
+        await context.emitProgress({ type: 'skill.started', message: `开始执行 ${step.skill}`, data: { skill: step.skill } });
         const data = await context.skills.execute(step.skill, step.input, {
           traceId: context.traceId,
           sessionId: context.input.sessionId,
           userId: context.input.userId,
           metadata: context.input.metadata,
+          emitProgress: context.emitProgress,
         });
+        await context.emitProgress({ type: 'skill.completed', message: `执行 ${step.skill} 完成.`, data: { skill: step.skill } });
         lastOutput = {
           success: true,
           intent: 'skill',
-          message: `Skill ${step.skill} executed successfully.`,
+          message: `${step.skill} 调用成功.`,
           data,
           traceId: context.traceId,
         };
       } else {
         const memory = context.input.sessionId ? await context.memory.get(context.input.sessionId) : [];
+        await context.emitProgress({ type: 'model.started', message: '调用大模型分析', data: { task: step.task } });
         const result = await context.model.generate({ task: step.task, input: step.input, memory });
+        await context.emitProgress({ type: 'model.completed', message: '大模型分析完成', data: { task: step.task } });
         lastOutput = {
           success: true,
           intent: step.task,
@@ -91,7 +96,7 @@ export class DefaultExecutor implements Executor {
     return lastOutput ?? {
       success: false,
       intent: 'empty_plan',
-      message: 'The planner returned no executable steps.',
+      message: '没有可执行的步骤',
       traceId: context.traceId,
     };
   }

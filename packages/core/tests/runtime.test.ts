@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { describe, expect, it } from 'vitest';
 import {
   createAgent,
+  type AgentProgressEvent,
   type Executor,
   type MemoryProvider,
   type Planner,
@@ -79,6 +80,77 @@ describe('agent builder', () => {
       intent: 'skill',
       data: { value: 'hello' },
     });
+  });
+
+  it('emits progress events for model execution when a listener is provided', async () => {
+    const events: AgentProgressEvent[] = [];
+    const agent = createAgent({ model: modelConfig })
+      .useModel({
+        async generate() {
+          return { text: 'progress model' };
+        },
+      })
+      .build();
+
+    await expect(agent.run({
+      input: 'hello',
+      metadata: {
+        onProgress(event: AgentProgressEvent) {
+          events.push(event);
+        },
+      },
+    })).resolves.toMatchObject({
+      success: true,
+      message: 'progress model',
+    });
+
+    expect(events.map((event) => event.type)).toEqual(expect.arrayContaining([
+      'agent.started',
+      'guard.started',
+      'plan.created',
+      'model.started',
+      'model.completed',
+      'agent.completed',
+    ]));
+    expect(events.every((event) => event.traceId && event.at && event.message)).toBe(true);
+  });
+
+  it('lets skills emit custom progress events', async () => {
+    const events: AgentProgressEvent[] = [];
+    const skill: Skill<string, string> = {
+      name: 'progress.echo',
+      description: 'Echo with progress',
+      inputSchema: z.string(),
+      outputSchema: z.string(),
+      async execute(input, context) {
+        await context.emitProgress?.({
+          type: 'custom.step',
+          message: 'Custom skill step.',
+          data: { input },
+        });
+        return input;
+      },
+    };
+    const agent = createAgent({ model: modelConfig }).useSkill(skill).build();
+
+    await expect(agent.run({
+      input: 'hello',
+      metadata: {
+        onProgress(event: AgentProgressEvent) {
+          events.push(event);
+        },
+      },
+    })).resolves.toMatchObject({
+      success: true,
+      data: 'hello',
+    });
+
+    expect(events.map((event) => event.type)).toEqual(expect.arrayContaining([
+      'skill.started',
+      'custom.step',
+      'skill.completed',
+    ]));
+    expect(events.find((event) => event.type === 'custom.step')?.data).toEqual({ input: 'hello' });
   });
 
   it('rejects duplicate skill names', () => {

@@ -24,6 +24,16 @@ export interface AgentInput {
   metadata?: Record<string, unknown>;
 }
 
+export interface AgentProgressEvent {
+  type: string;
+  message: string;
+  data?: unknown;
+  traceId: string;
+  at: string;
+}
+
+export type AgentProgressHandler = (event: AgentProgressEvent) => void | Promise<void>;
+
 export interface AgentOutput {
   success: boolean;
   intent: string;
@@ -39,6 +49,7 @@ export interface SkillContext {
   sessionId?: string;
   userId?: string;
   metadata?: Record<string, unknown>;
+  emitProgress?(event: Omit<AgentProgressEvent, 'traceId' | 'at'>): Promise<void>;
 }
 
 export interface Skill<I = unknown, O = unknown> {
@@ -104,6 +115,7 @@ export interface ExecutorContext {
   model: ModelProvider;
   skills: SkillRegistryLike;
   trace: TraceRun;
+  emitProgress(event: Omit<AgentProgressEvent, 'traceId' | 'at'>): Promise<void>;
 }
 
 export interface Executor {

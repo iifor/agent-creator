@@ -1,5 +1,6 @@
 import readline from 'node:readline/promises';
 import { stdin as input, stdout as output } from 'node:process';
+import type { AgentProgressEvent } from '@agent-creator/core';
 import { loadDotEnv } from './env.js';
 
 export async function runCli(): Promise<void> {
@@ -21,7 +22,15 @@ export async function runCli(): Promise<void> {
   while (true) {
     const text = await rl.question('User: ');
     if (['exit', 'quit'].includes(text.trim().toLowerCase())) break;
-    const result = await runAgent({ input: text, sessionId });
+    const result = await runAgent({
+      input: text,
+      sessionId,
+      metadata: {
+        onProgress(event: AgentProgressEvent) {
+          console.log(formatProgress(event));
+        },
+      },
+    });
     console.log('Agent:');
     console.log(JSON.stringify(result, null, 2));
   }
@@ -30,3 +39,8 @@ export async function runCli(): Promise<void> {
 }
 
 await runCli();
+
+function formatProgress(event: AgentProgressEvent): string {
+  const prefix = event.type.endsWith('.completed') ? '✓' : event.type.endsWith('.failed') ? '✗' : '…';
+  return `${prefix} ${event.message}`;
+}

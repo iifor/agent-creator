@@ -2,12 +2,13 @@
 
 import { Alert, Button, Card, Input, Layout, Space, Tag, Typography } from 'antd';
 import { useMemo, useState } from 'react';
-import type { AgentOutput } from '@agent-creator/core';
+import type { AgentOutput, AgentProgressEvent } from '@agent-creator/core';
 
 interface Message {
   role: 'user' | 'agent';
   content: string;
   output?: AgentOutput;
+  progress?: AgentProgressEvent[];
 }
 
 export function AgentChat() {
@@ -22,19 +23,31 @@ export function AgentChat() {
     setInput('');
     setLoading(true);
     setMessages((current) => [...current, { role: 'user', content: text }]);
+    const agentMessageIndex = messages.length + 1;
+    setMessages((current) => [...current, { role: 'agent', content: 'Agent is working...', progress: [] }]);
     try {
-      const response = await fetch('/api/agent', {
+      const response = await fetch('/api/agent/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ input: text, sessionId }),
       });
-      const output = await response.json() as AgentOutput;
-      setMessages((current) => [...current, { role: 'agent', content: output.message, output }]);
+      if (!response.body) throw new Error('Streaming response is unavailable.');
+      await readStream(response.body, {
+        onProgress(event) {
+          setMessages((current) => current.map((message, index) => index === agentMessageIndex
+            ? { ...message, content: event.message, progress: [...(message.progress ?? []), event] }
+            : message));
+        },
+        onFinal(output) {
+          setMessages((current) => current.map((message, index) => index === agentMessageIndex
+            ? { ...message, content: output.message, output }
+            : message));
+        },
+      });
     } catch (error) {
-      setMessages((current) => [...current, {
-        role: 'agent',
-        content: error instanceof Error ? error.message : String(error),
-      }]);
+      setMessages((current) => current.map((message, index) => index === agentMessageIndex
+        ? { ...message, content: error instanceof Error ? error.message : String(error) }
+        : message));
     } finally {
       setLoading(false);
     }
@@ -73,6 +86,9 @@ export function AgentChat() {
                     {message.output?.data !== undefined && (
                       <pre className="jsonBlock">{JSON.stringify(message.output.data, null, 2)}</pre>
                     )}
+                    {message.progress && message.progress.length > 0 && (
+                      <pre className="jsonBlock">{message.progress.map((event) => `${event.type}: ${event.message}`).join('\n')}</pre>
+                    )}
                   </Space>
                 </Card>
               ))}
@@ -90,4 +106,41 @@ export function AgentChat() {
       </div>
     </Layout>
   );
+}
+
+async function readStream(
+  body: ReadableStream<Uint8Array>,
+  handlers: {
+    onProgress(event: AgentProgressEvent): void;
+    onFinal(output: AgentOutput): void;
+  },
+) {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() ?? '';
+    for (const line of lines) handleLine(line, handlers);
+  }
+  if (buffer.trim()) handleLine(buffer, handlers);
+}
+
+function handleLine(
+  line: string,
+  handlers: {
+    onProgress(event: AgentProgressEvent): void;
+    onFinal(output: AgentOutput): void;
+  },
+) {
+  if (!line.trim()) return;
+  const event = JSON.parse(line) as
+    | { type: 'progress'; event: AgentProgressEvent }
+    | { type: 'final'; output: AgentOutput };
+  if (event.type === 'progress') handlers.onProgress(event.event);
+  else handlers.onFinal(event.output);
 }

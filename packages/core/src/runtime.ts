@@ -6,6 +6,8 @@ import type {
   AgentContext,
   AgentInput,
   AgentOutput,
+  AgentProgressEvent,
+  AgentProgressHandler,
   CreateAgentOptions,
   Executor,
   Guard,
@@ -93,13 +95,16 @@ export class AgentBuilder {
         if (!input.input?.trim()) throw new Error('input is required.');
         const traceId = createId('trace');
         const traceRun = runtime.trace.start(input, traceId);
+        const progress = progressEmitter(input, traceId);
         try {
+          await progress({ type: 'agent.started', message: '智能体开始工作', data: { input: input.input } });
           const memory = input.sessionId ? await runtime.memory.get(input.sessionId) : [];
           const context: AgentContext = {
             input,
             memory,
             availableSkills: runtime.skills.list().map(({ name, description }) => ({ name, description })),
           };
+          await progress({ type: 'guard.started', message: '检查请求防护' });
           const guardResult = await runtime.guard.check(context);
           if (!guardResult.allowed) {
             const output = {
@@ -108,14 +113,19 @@ export class AgentBuilder {
               message: guardResult.reason ?? 'The request was blocked by the guard.',
               traceId,
             };
+            await progress({ type: 'guard.blocked', message: output.message });
             await traceRun.end(output);
+            await progress({ type: 'agent.completed', message: 'Agent completed.', data: output });
             return output;
           }
+          await progress({ type: 'guard.completed', message: '请求防护已通过' });
           if (input.sessionId) {
             await runtime.memory.append(input.sessionId, { role: 'user', content: input.input, at: new Date().toISOString() });
           }
+          await progress({ type: 'planner.started', message: '正在规划后续步骤' });
           const plan = await runtime.planner.plan(context);
           await traceRun.append({ type: 'plan.created', data: plan });
+          await progress({ type: 'plan.created', message: '计划已创建', data: plan });
           const output = await runtime.executor.execute(plan, {
             input,
             traceId,
@@ -123,6 +133,7 @@ export class AgentBuilder {
             model: runtime.model,
             skills: runtime.skills,
             trace: traceRun,
+            emitProgress: progress,
           });
           if (input.sessionId) {
             await runtime.memory.append(input.sessionId, {
@@ -133,6 +144,7 @@ export class AgentBuilder {
             });
           }
           await traceRun.end(output);
+          await progress({ type: 'agent.completed', message: '智能体工作完成', data: output });
           return output;
         } catch (error) {
           const output = {
@@ -143,6 +155,7 @@ export class AgentBuilder {
             traceId,
           };
           await traceRun.end(output);
+          await progress({ type: 'agent.failed', message: 'Agent execution failed.', data: output });
           return output;
         }
       },
@@ -163,4 +176,16 @@ function assertFunction(value: object, key: string, moduleName: string): void {
 
 function createId(prefix: string): string {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function progressEmitter(input: AgentInput, traceId: string) {
+  const handler = input.metadata?.onProgress;
+  return async (event: Omit<AgentProgressEvent, 'traceId' | 'at'>) => {
+    if (typeof handler !== 'function') return;
+    await (handler as AgentProgressHandler)({
+      ...event,
+      traceId,
+      at: new Date().toISOString(),
+    });
+  };
 }

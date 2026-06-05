@@ -19,6 +19,7 @@ describe('create command', () => {
       await expect(fs.access(path.join(dir, 'demo-agent', 'src/agent/orchestrator.ts'))).rejects.toThrow();
       await expect(fs.access(path.join(dir, 'demo-agent', 'src/app/page.tsx'))).resolves.toBeUndefined();
       await expect(fs.access(path.join(dir, 'demo-agent', 'src/app/api/agent/route.ts'))).resolves.toBeUndefined();
+      await expect(fs.access(path.join(dir, 'demo-agent', 'src/app/api/agent/stream/route.ts'))).resolves.toBeUndefined();
       const config = await fs.readFile(path.join(dir, 'demo-agent', 'agent.config.ts'), 'utf8');
       expect(config).toContain("capability: 'agent-core'");
       expect(config).toContain("configVersion: '0.1'");
@@ -44,6 +45,10 @@ describe('create command', () => {
       expect(generatedPackageJson.dependencies).toHaveProperty('@agent-creator/core');
       expect(generatedPackageJson.scripts.dev).toBe('next dev');
       expect(generatedPackageJson.scripts['dev:agent']).toBe('tsx src/cli.ts');
+      const cli = await fs.readFile(path.join(dir, 'demo-agent', 'src/cli.ts'), 'utf8');
+      expect(cli).toContain('onProgress');
+      const chat = await fs.readFile(path.join(dir, 'demo-agent', 'src/components/AgentChat.tsx'), 'utf8');
+      expect(chat).toContain('/api/agent/stream');
     } finally {
       process.chdir(previous);
     }
@@ -80,6 +85,7 @@ describe('create command', () => {
       expect(generatedPackageJson.scripts).not.toHaveProperty('dev:agent');
       const cli = await fs.readFile(path.join(dir, 'demo-agent', 'src/cli.ts'), 'utf8');
       expect(cli).toContain('loadDotEnv');
+      expect(cli).toContain('onProgress');
       expect(cli).toContain('Set model.baseUrl and model.apiKey in agent.config.ts');
       expect(cli).not.toContain('LLM_MODEL before running');
     } finally {

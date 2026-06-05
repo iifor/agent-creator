@@ -9,6 +9,8 @@ export type {
   AgentOutput,
   AgentPlan,
   AgentPlanStep,
+  AgentProgressEvent,
+  AgentProgressHandler,
   CreateAgentOptions,
   Executor,
   ExecutorContext,
