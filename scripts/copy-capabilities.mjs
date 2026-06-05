@@ -1,10 +1,13 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 const capabilities = [
   {
-    from: 'src/capabilities/agent-core/files',
-    to: 'dist/src/capabilities/agent-core/files',
+    from: path.join(root, 'packages/cli/src/capabilities/agent-core/files'),
+    to: path.join(root, 'packages/cli/dist/src/capabilities/agent-core/files'),
   },
 ];
 

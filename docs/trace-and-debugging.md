@@ -1,23 +1,15 @@
-# Trace and Debugging
+# Trace And Debugging
 
-Generated projects write trace JSON files to `.agent-traces/<traceId>.json` when trace is enabled.
+Core uses `NoopTraceProvider` by default. Applications can register a custom provider with `builder.useTrace(provider)`.
 
-## Trace Contains
+A Trace provider receives the Agent input and generated trace ID, then returns a run object with:
 
-- `traceId`
-- `requestId`
-- `startedAt`
-- `endedAt`
-- `latencyMs`
-- `userInput`
-- `detectedIntent`
-- `plan`
-- `toolCalls`
-- `toolResults`
-- `finalOutput`
-- `errors`
+- `append(event)`
+- `end(output)`
 
-## Commands
+Providers may write JSON files, send telemetry to an external service, or keep traces in memory.
+
+The CLI keeps `agent trace` as a compatibility reader for providers that write `.agent-traces/<traceId>.json`:
 
 ```bash
 agent trace --list
@@ -25,13 +17,4 @@ agent trace --latest
 agent trace --id trace_xxx
 ```
 
-## Debugging Flow
-
-1. Use `traceId` from `AgentOutput`.
-2. Run `agent trace --id <traceId>`.
-3. Check detected intent.
-4. Check plan steps.
-5. Check tool calls and results.
-6. Check final output and errors.
-
-Trace JSON files are ignored by git through `.agent-traces/*.json`.
+The core package does not access the filesystem or select a tracing backend.

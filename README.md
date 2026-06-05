@@ -1,51 +1,54 @@
 # Agent Creator
 
-Agent Creator is a docs-first CLI for generating runnable, testable Agent applications.
+Agent Creator is an npm workspace for a composable Agent runtime and the CLI that creates projects using it.
 
-It is not a chatbot generator and not a prompt collection. v0.1 focuses on one reliable loop: create an `agent-core` capability, run it locally, test it, validate it, inspect traces, and add tools.
+## Packages
 
-## Docs-First Rule
+- `@agent-creator/core`: Agent Builder, Skill registry, memory, planning, execution, guards, traces, and OpenAI-compatible models.
+- `agent-creator-cli`: the `agent` binary for creating package or Next.js service projects.
 
-AI agents and developers must understand this project through `docs/` first.
+## Core Usage
 
-Required reading order:
+```ts
+import { createAgent } from '@agent-creator/core';
 
-1. `docs/README.md`
-2. `docs/project-overview.md`
-3. The task-specific docs page
-4. Only the code files relevant to the task
+const agent = createAgent({
+  model: {
+    baseUrl: 'https://api.openai.com/v1',
+    apiKey: process.env.OPENAI_API_KEY!,
+    model: 'gpt-4o-mini',
+  },
+})
+  .useSkill(todoSkill)
+  .useMemory(redisMemory)
+  .usePlanner(customPlanner)
+  .useExecutor(customExecutor)
+  .build();
 
-Do not start by globally scanning the codebase to infer the architecture.
+await agent.run({ input: 'Add a task', sessionId: 'session-1' });
+```
 
-If a change modifies project flow, module boundaries, key APIs, data structures, runtime config, workflows, or important conventions, update `docs/` in the same change.
+The model `baseUrl`, `apiKey`, and `model` are required code inputs. Core does not read environment variables implicitly.
 
-## Commands
+## Workspace Commands
 
 ```bash
 npm install
-npm run build -- --release fix
+npm run build:plain
 npm test
-npm link
 npm run check:package
-npm run publish:beta
 npm run commit
-
-agent create demo-agent
-cd demo-agent
-npm install
-npm run dev
-agent validate
-agent trace --latest
-agent add tool calendar
-agent version
-agent help
 ```
 
-## v0.1 Scope
+## CLI Commands
 
-- CLI: `create`, `validate`, `dev`, `trace`, `add tool`
-- Capability: `agent-core`
-- Runtime: OpenAI-compatible LLM provider, local example tools, guard, planner, executor, output validator, error recovery, trace
-- Docs: project knowledge entrypoint for humans and AI
+```bash
+agent create demo-agent --mode package
+agent create demo-service --mode service
+agent add skill calendar
+agent add tool calendar # deprecated compatibility alias
+agent validate
+agent version
+```
 
-Deferred: richer model providers, additive RAG/workflow/multi-agent modules, Web Dev Console, plugin marketplace, `add guard`, and `add workflow`.
+Generated projects depend on `@agent-creator/core`; they do not contain a copied runtime.

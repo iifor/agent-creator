@@ -1,65 +1,23 @@
 # Testing
 
-## Root Project Tests
-
-Root tests cover:
-
-- Capability registry
-- Create command
-- Validate command
-
-The root TypeScript build and Vitest config exclude generated acceptance projects and `src/capabilities/**/files/**` because physical capability files may contain unreplaced placeholders. Generated projects compile those files after placeholder replacement.
-
-Run:
+## Workspace
 
 ```bash
 npm test
+npm run build:plain
+npm run check:package
 ```
 
-## Generated Project Tests
+The workspace suite runs:
 
-Generated projects include tests for:
+- core Builder, Provider, Skill, module override, and Tool compatibility tests
+- CLI creation, validation, Skill generation, capability, version, and dependency tests
+- root release and commit script tests
 
-- Config schema
-- Tool registry
-- Weather tool
-- Math tool
-- Orchestrator paths
+## Consumer Acceptance
 
-Run inside a generated project:
+Pack or install the local `packages/core` into generated package and service projects.
 
-```bash
-npm install
-npm run build
-npm test
-```
+Package acceptance requires `npm test` and `npm run build`.
 
-Generated service Agent acceptance:
-
-```bash
-node dist/src/index.js create demo-agent --force
-cd demo-agent
-npm install
-npm run build
-npm test
-agent validate
-```
-
-Generated projects use `next build`; `npm run dev:agent` is available for CLI-only debugging.
-
-## Full Acceptance
-
-```bash
-npm install
-npm run build
-npm test
-npm link
-agent create demo-agent
-cd demo-agent
-npm install
-npm run build
-npm test
-npm run dev
-agent validate
-agent trace --latest
-```
+Service acceptance requires `npm test` and `npm run build`; model credentials are not required at build time because Agent construction is lazy.

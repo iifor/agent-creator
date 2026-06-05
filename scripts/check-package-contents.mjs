@@ -1,50 +1,55 @@
 import { spawnSync } from 'node:child_process';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const cacheArgs = ['--cache', '/private/tmp/agent-creator-npm-cache'];
-const result = spawnSync('npm', ['pack', '--dry-run', '--json', ...cacheArgs], {
-  encoding: 'utf8',
-  shell: process.platform === 'win32',
-});
-
-if (result.status !== 0) {
-  console.error(result.stderr || result.stdout);
-  process.exit(result.status ?? 1);
-}
-
-const payload = JSON.parse(result.stdout.match(/\[[\s\S]*\]/)?.[0] ?? '[]');
-const files = payload[0]?.files?.map((file) => file.path) ?? [];
-const forbidden = files.filter((file) => {
-  if (file.startsWith('src/')) return true;
-  if (file.startsWith('tests/')) return true;
-  if (file.startsWith('demo-agent/')) return true;
-  if (file.startsWith('demo-service/')) return true;
-  if (file.startsWith('.git/')) return true;
-  if (file.startsWith('.agent-traces/')) return true;
-  if (file === 'tsconfig.json' || file === 'vitest.config.ts' || file === 'todo.md') return true;
-  return false;
-});
-
-if (forbidden.length > 0) {
-  console.error('Package contains forbidden files:');
-  for (const file of forbidden) console.error(`- ${file}`);
-  process.exit(1);
-}
-
-const required = [
-  'package.json',
-  'README.md',
-  'CHANGELOG.md',
-  'dist/src/index.js',
-  'dist/src/commands/validate.js',
-  'dist/src/capabilities/agent-core/files/base/package.json',
-  'dist/src/capabilities/agent-core/files/service/package.json',
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const packages = [
+  {
+    name: '@agent-creator/core',
+    cwd: path.join(root, 'packages/core'),
+    required: ['package.json', 'README.md', 'dist/index.js', 'dist/index.d.ts'],
+    forbiddenPrefixes: ['src/', 'tests/'],
+  },
+  {
+    name: 'agent-creator-cli',
+    cwd: path.join(root, 'packages/cli'),
+    required: [
+      'package.json',
+      'README.md',
+      'dist/src/index.js',
+      'dist/src/commands/validate.js',
+      'dist/src/capabilities/agent-core/files/base/package.json',
+      'dist/src/capabilities/agent-core/files/service/package.json',
+    ],
+    forbiddenPrefixes: ['src/', 'tests/'],
+  },
 ];
 
-const missing = required.filter((file) => !files.includes(file));
-if (missing.length > 0) {
-  console.error('Package is missing required files:');
-  for (const file of missing) console.error(`- ${file}`);
-  process.exit(1);
+for (const packageDefinition of packages) {
+  const files = packFiles(packageDefinition.cwd);
+  const forbidden = files.filter((file) => packageDefinition.forbiddenPrefixes.some((prefix) => file.startsWith(prefix)));
+  if (forbidden.length > 0) {
+    fail(`${packageDefinition.name} contains forbidden files:\n${forbidden.map((file) => `- ${file}`).join('\n')}`);
+  }
+  const missing = packageDefinition.required.filter((file) => !files.includes(file));
+  if (missing.length > 0) {
+    fail(`${packageDefinition.name} is missing required files:\n${missing.map((file) => `- ${file}`).join('\n')}`);
+  }
+  console.log(`${packageDefinition.name} package contents OK (${files.length} files).`);
 }
 
-console.log(`Package contents OK (${files.length} files).`);
+function packFiles(cwd) {
+  const result = spawnSync('npm', ['pack', '--dry-run', '--json', '--cache', '/private/tmp/agent-creator-npm-cache'], {
+    cwd,
+    encoding: 'utf8',
+    shell: process.platform === 'win32',
+  });
+  if (result.status !== 0) fail(result.stderr || result.stdout);
+  const payload = JSON.parse(result.stdout.match(/\[[\s\S]*\]/)?.[0] ?? '[]');
+  return payload[0]?.files?.map((file) => file.path) ?? [];
+}
+
+function fail(message) {
+  console.error(message);
+  process.exit(1);
+}

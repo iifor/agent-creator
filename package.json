@@ -1,33 +1,22 @@
 {
-  "name": "agent-creator-cli",
+  "name": "agent-creator-workspace",
   "version": "0.4.2",
-  "description": "Docs-first CLI scaffolding for runnable, testable AI agent apps.",
-  "type": "module",
-  "bin": {
-    "agent": "./dist/src/index.js"
-  },
-  "files": [
-    "dist",
-    "CHANGELOG.md",
-    "README.md",
-    "package.json"
+  "private": true,
+  "description": "Workspace for the Agent Creator CLI and composable Agent runtime.",
+  "workspaces": [
+    "packages/*"
   ],
   "scripts": {
     "build": "node scripts/build.mjs",
-    "build:plain": "node scripts/clean.mjs && tsc && node scripts/copy-capabilities.mjs",
-    "dev": "tsx src/index.ts",
-    "test": "vitest run",
-    "validate": "tsx src/index.ts validate",
+    "build:plain": "npm run build --workspace @agent-creator/core && npm run build --workspace agent-creator-cli",
+    "dev": "npm run dev --workspace agent-creator-cli",
+    "test": "npm run test --workspace @agent-creator/core && npm run test --workspace agent-creator-cli && vitest run tests/versionScripts.test.ts",
+    "validate": "npm run validate --workspace agent-creator-cli",
     "commit": "node scripts/commit.mjs",
     "check:package": "node scripts/check-package-contents.mjs",
     "publish": "node scripts/publish.mjs --tag latest",
     "publish:beta": "node scripts/publish.mjs --tag beta",
     "prepare": "husky || true"
-  },
-  "dependencies": {
-    "commander": "^12.1.0",
-    "typescript": "^5.9.3",
-    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/node": "^20.14.12",

@@ -20,16 +20,18 @@ During `0.x`:
 
 ## Version Layers
 
-- CLI package version: root `package.json` `version`.
+- Workspace coordination version: root `package.json` `version`.
+- Core package version: `packages/core/package.json`.
+- CLI package version: `packages/cli/package.json`.
 - Capability version: generated `agent.config.ts` `capabilityVersion`.
 - Config schema version: generated `agent.config.ts` `configVersion`.
 - Generated runtime version: generated `agent.config.ts` `generatedBy.version`.
 
-`agent version` and `agent --version` must read from root `package.json` through `src/version.ts`.
+`agent version` and `agent --version` read from `packages/cli/package.json` through `packages/cli/src/version.ts`.
 
 ## Supported Config Versions
 
-Supported config versions are declared in `src/version.ts`.
+Supported config versions are declared in `packages/cli/src/version.ts`.
 
 `agent validate` must reject unsupported `configVersion` values with repair guidance. v0.1 does not auto-migrate configs; future versions may add `agent migrate`.
 
@@ -110,16 +112,16 @@ Before a release:
 ```bash
 npm run build -- --release fix
 npm test
-node dist/src/index.js create demo-agent --force
+node packages/cli/dist/src/index.js create demo-agent --force
 cd demo-agent
 npm run build
 npm test
-node ../dist/src/index.js validate
+node ../packages/cli/dist/src/index.js validate
 ```
 
 Release dependency rule:
 
-- Any package statically imported by `src/**/*.ts` at runtime must be listed in `dependencies`, not only `devDependencies`.
+- Any package statically imported by a workspace package's runtime source must be listed in that package's `dependencies`.
 - The test suite includes a runtime dependency guard to catch missing published-package dependencies before npm release.
 - `npm pack --dry-run` should show only the publish allowlist, not source tests or stale `dist` artifacts.
 - The `prepare` script installs Husky when possible but must not block npm packing/publishing in restricted environments.
@@ -137,7 +139,7 @@ Both publish commands run `build:plain`, tests, package content checks, and then
 Release steps:
 
 1. Run `npm run build -- --release <type>` to bump versions and compile.
-2. Ensure `src/version.ts` derives CLI and capability versions correctly.
+2. Ensure workspace, core, CLI, and capability versions remain synchronized.
 3. Update `CHANGELOG.md`.
 4. Update affected docs.
 5. Commit using a Conventional Commit message.

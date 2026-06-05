@@ -14,9 +14,10 @@ Do not begin by globally scanning all code.
 
 ## Common Task Map
 
-- CLI change: read `docs/cli.md`, then `src/cli/cli.ts` and the relevant command file.
-- Capability change: read `docs/capability-system.md`, then `src/capabilities/agent-core/files/` and `src/capabilities/agent-core/fileLoader.ts`.
-- Generated runtime change: read `docs/generated-agent-runtime.md`, then the relevant generated runtime function in the capability files.
+- Core runtime change: read `docs/architecture.md`, then `packages/core/src/`.
+- CLI change: read `docs/cli.md`, then `packages/cli/src/cli/cli.ts` and the relevant command file.
+- Capability change: read `docs/capability-system.md`, then `packages/cli/src/capabilities/agent-core/`.
+- Generated project change: read `docs/generated-agent-runtime.md`, then the capability files.
 - Trace change: read `docs/trace-and-debugging.md`, then trace command and generated trace modules.
 - Test change: read `docs/testing.md`, then focused tests.
 

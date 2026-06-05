@@ -1,0 +1,36 @@
+{
+  "name": "agent-creator-cli",
+  "version": "0.4.2",
+  "description": "CLI for creating projects powered by @agent-creator/core.",
+  "type": "module",
+  "bin": {
+    "agent": "./dist/src/index.js"
+  },
+  "main": "./dist/src/index.js",
+  "files": [
+    "dist",
+    "README.md",
+    "package.json"
+  ],
+  "scripts": {
+    "build": "node ../../scripts/clean-cli.mjs && tsc -p tsconfig.json && node ../../scripts/copy-capabilities.mjs",
+    "dev": "tsx src/index.ts",
+    "test": "vitest run",
+    "validate": "tsx src/index.ts validate",
+    "check:package": "npm pack --dry-run --json"
+  },
+  "dependencies": {
+    "@agent-creator/core": "file:../core",
+    "commander": "^12.1.0",
+    "typescript": "^5.9.3",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.12",
+    "tsx": "^4.16.2",
+    "vitest": "^2.0.5"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

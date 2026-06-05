@@ -6,6 +6,10 @@ All notable changes to Agent Creator are recorded here.
 
 ### Added
 
+- Added the publishable `@agent-creator/core` workspace package.
+- Added a Builder API for Skills, Memory, Planner, Executor, Model, Guard, and Trace modules.
+- Added required OpenAI-compatible `baseUrl`, `apiKey`, and `model` configuration.
+- Added `agent add skill`; `agent add tool` remains as a deprecated compatibility alias.
 - Added `npm run commit` for Agent Creator maintainers with interactive Conventional Commit type selection.
 - Generated projects are now service-style Agents by default with Next.js API routes, antd chat UI, and trace viewer.
 - Generated projects keep `npm run dev:agent` for CLI debugging while `npm run dev` starts Next.js.
@@ -27,6 +31,8 @@ All notable changes to Agent Creator are recorded here.
 
 ### Changed
 
+- Converted generated package and service projects into thin consumers of `@agent-creator/core`.
+- Split the repository into npm workspace packages for core and CLI.
 - Moved `typescript` to production dependencies because `agent validate` uses it at CLI runtime.
 - Moved `agent-core` generation from large inline strings to physical capability files.
 - `agent validate` now loads generated config and checks schema/config version compatibility.

@@ -7,6 +7,11 @@
 
 ## Done
 
+- [x] Split the repository into core and CLI workspaces
+- [x] Add composable Agent Builder and required OpenAI-compatible model config
+- [x] Add Skill, Memory, Planner, Executor, Guard, Model, and Trace registration
+- [x] Make generated projects thin @agent-creator/core consumers
+- [x] Add agent add skill and keep add tool as a compatibility alias
 - [x] Add interactive project commit script
 - [x] Add optional Next.js service example shell overlay
 - [x] Add service-aware project validation

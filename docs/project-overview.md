@@ -1,32 +1,26 @@
 # Project Overview
 
-Agent Creator helps developers move from zero to a runnable Agent application without inventing project structure from scratch.
+Agent Creator provides a stable npm Agent runtime and a CLI for creating thin consumer projects.
 
 ## Positioning
 
-Agent Creator is an engineering scaffold and complete base runtime for Agent apps. It focuses on structure, observability, validation, testing, and safe extension points while leaving product shape to the developer.
+`@agent-creator/core` owns reusable Agent behavior. Applications decide whether that runtime becomes a todo Agent, workflow Agent, RAG Agent, customer-service Agent, or another product by registering Skills and replacing runtime modules.
 
-## v0.1 Scope
+## Packages
 
-- Generate one base capability: `agent-core`
-- Run locally as a service Agent with OpenAI-compatible LLM configuration
-- Execute mock tools
-- Validate generated project shape
-- Record trace files
-- Add new tool skeletons
-- Provide docs-first maintenance rules
-- Provide layered version metadata for generated projects
+- `packages/core`: published as `@agent-creator/core`.
+- `packages/cli`: published as `agent-creator-cli` with the `agent` binary.
+- Generated package projects: reusable business Agents that depend on core.
+- Generated service projects: the same business Agent plus a Next.js UI/API shell.
 
-## Out of Scope
+## Core Guarantees
 
-- Real external APIs
-- RAG ingestion
-- Multi-agent collaboration
-- Web Dev Console
-- Visual platform
-- Plugin marketplace
-- Account or deployment platform
+- Explicit OpenAI-compatible model configuration.
+- Builder-based registration for Skill, Memory, Planner, Executor, Model, Guard, and Trace modules.
+- Default minimal runtime modules with no example Skills.
+- Schema validation for Skill input and output.
+- One-version compatibility adapters for legacy Tool APIs.
 
 ## Future Direction
 
-Future versions can add richer model providers, `agent add workflow`, `agent add rag`, `agent add guard`, multi-agent coordination modules, and a browser-based trace UI.
+Workflow, RAG, todo, and multi-Agent features should ship as Skills or module packages rather than templates.

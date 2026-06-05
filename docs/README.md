@@ -9,7 +9,7 @@ This directory is the source of truth for understanding Agent Creator.
 3. Pick the task-specific doc:
    - CLI behavior: `cli.md`
    - Capabilities: `capability-system.md`
-   - Generated runtime: `generated-agent-runtime.md`
+   - Generated projects: `generated-agent-runtime.md`
    - Trace/debugging: `trace-and-debugging.md`
    - Tests: `testing.md`
    - Versioning: `versioning.md`

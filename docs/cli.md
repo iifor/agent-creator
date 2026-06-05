@@ -14,7 +14,8 @@ Options:
 
 Only `agent-core` is supported in v0.1. Unsupported capabilities return a clear error in Chinese explaining that RAG, workflow, guard, and similar features are additive modules or commands.
 
-Generated projects are service-style Agent projects by default: Agent runtime, Next.js API routes, antd chat UI, and trace viewer.
+Generated projects are service-style Agent projects by default: core-backed Agent integration, a Next.js API route, and an antd chat UI.
+Generated projects depend on `@agent-creator/core` and contain only configuration, Skills, integration code, tests, and the optional service shell.
 
 ## `agent validate`
 
@@ -50,20 +51,12 @@ Options:
 - `--list` lists trace IDs
 - `--id <traceId>` shows one trace
 
+This command remains for compatibility with projects that configure a file-backed Trace provider.
+
+## `agent add skill <skillName>`
+
+Adds a typed `Skill` skeleton under `src/skills`, registers it in `src/skills/index.ts`, and records it in `agent.config.ts`.
+
 ## `agent add tool <toolName>`
 
-Adds a tool skeleton in a generated project.
-
-Options:
-
-- `--permission public`
-- `--permission external_api`
-- `--permission user_private`
-
-The command updates:
-
-- `src/tools/<tool-name>.ts`
-- `src/tools/index.ts`
-- `agent.config.ts`
-
-It relies on marker comments to keep edits predictable.
+Deprecated compatibility alias for `agent add skill`.
