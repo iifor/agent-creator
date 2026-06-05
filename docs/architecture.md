@@ -19,15 +19,15 @@ Commands live in `src/commands/`:
 
 Shared helpers live in `src/utils/`, schemas in `src/schemas/`, and public internal types in `src/types/`.
 
-## Template System
+## Capability System
 
-Templates are registered in `src/templates/templateRegistry.ts`.
+Capabilities are registered in `src/capabilities/capabilityRegistry.ts`.
 
-v0.1 registers only `tool-agent`. The generated files live under `src/templates/tool-agent/files/` and are loaded by `src/templates/tool-agent/fileTemplate.ts`.
+v0.1 registers only `agent-core`. The generated files live under `src/capabilities/agent-core/files/` and are loaded by `src/capabilities/agent-core/fileLoader.ts`.
 
 ## Generated Runtime
 
-The generated `tool-agent` runtime follows a small pipeline:
+The generated `agent-core` runtime follows a small pipeline:
 
 ```txt
 input -> inputAnalyzer -> intentRouter -> guard -> planner -> executor -> outputValidator -> traceLogger -> AgentOutput

@@ -2,16 +2,20 @@ import { z } from 'zod';
 
 export const agentConfigSchema = z.object({
   name: z.string().min(1),
-  template: z.literal('tool-agent'),
+  capability: z.literal('agent-core'),
   version: z.string().min(1),
   configVersion: z.string().min(1),
-  templateVersion: z.string().min(1),
+  capabilityVersion: z.string().min(1),
   generatedBy: z.object({
     name: z.literal('agent-creator'),
     version: z.string().min(1),
   }),
+  service: z.object({
+    enabled: z.boolean(),
+    framework: z.literal('next').optional(),
+  }),
   model: z.object({
-    provider: z.literal('mock'),
+    provider: z.literal('openai-compatible'),
     defaultModel: z.string().min(1),
     timeoutMs: z.number().positive(),
     maxRetries: z.number().int().nonnegative(),

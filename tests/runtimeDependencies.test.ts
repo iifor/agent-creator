@@ -29,7 +29,7 @@ async function listSourceFiles(directory: string): Promise<string[]> {
   const entries = await fs.readdir(directory, { withFileTypes: true });
   const files = await Promise.all(entries.map(async (entry) => {
     const entryPath = path.join(directory, entry.name);
-    if (entryPath.includes(`${path.sep}templates${path.sep}`) && entryPath.includes(`${path.sep}files${path.sep}`)) return [];
+    if (entryPath.includes(`${path.sep}capabilities${path.sep}`) && entryPath.includes(`${path.sep}files${path.sep}`)) return [];
     if (entry.isDirectory()) return listSourceFiles(entryPath);
     return entry.name.endsWith('.ts') ? [entryPath] : [];
   }));

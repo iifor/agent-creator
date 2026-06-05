@@ -17,6 +17,7 @@ const forbidden = files.filter((file) => {
   if (file.startsWith('src/')) return true;
   if (file.startsWith('tests/')) return true;
   if (file.startsWith('demo-agent/')) return true;
+  if (file.startsWith('demo-service/')) return true;
   if (file.startsWith('.git/')) return true;
   if (file.startsWith('.agent-traces/')) return true;
   if (file === 'tsconfig.json' || file === 'vitest.config.ts' || file === 'todo.md') return true;
@@ -35,7 +36,8 @@ const required = [
   'CHANGELOG.md',
   'dist/src/index.js',
   'dist/src/commands/validate.js',
-  'dist/src/templates/tool-agent/files/package.json',
+  'dist/src/capabilities/agent-core/files/base/package.json',
+  'dist/src/capabilities/agent-core/files/service/package.json',
 ];
 
 const missing = required.filter((file) => !files.includes(file));

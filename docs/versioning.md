@@ -1,27 +1,27 @@
 # Versioning
 
-Agent Creator uses layered versioning so CLI releases, generated templates, and generated config compatibility do not get mixed together.
+Agent Creator uses layered versioning so CLI releases, generated capabilities, and generated config compatibility do not get mixed together.
 
 ## SemVer
 
 The root package follows `MAJOR.MINOR.PATCH`.
 
 - `PATCH`: bug fixes, docs, internal refactors, and compatible validation improvements.
-- `MINOR`: compatible new features, commands, templates, or optional config fields.
-- `MAJOR`: breaking CLI behavior, incompatible template structure, or unsupported config schema changes.
+- `MINOR`: compatible new features, commands, capabilities, or optional config fields.
+- `MAJOR`: breaking CLI behavior, incompatible capability structure, or unsupported config schema changes.
 
 During `0.x`:
 
-- `0.1.x`: stabilize the current `tool-agent` loop.
+- `0.1.x`: stabilize the current `agent-core` loop.
 - `0.2.x`: add `add guard` and `add workflow`.
 - `0.3.x`: add real LLM providers.
-- `0.4.x`: add more templates such as `rag-agent`.
-- `1.0.0`: stabilize CLI, template system, config schema, and trace format.
+- `0.4.x`: add RAG and multi-agent modules.
+- `1.0.0`: stabilize CLI, capability system, config schema, and trace format.
 
 ## Version Layers
 
 - CLI package version: root `package.json` `version`.
-- Template version: generated `agent.config.ts` `templateVersion`.
+- Capability version: generated `agent.config.ts` `capabilityVersion`.
 - Config schema version: generated `agent.config.ts` `configVersion`.
 - Generated runtime version: generated `agent.config.ts` `generatedBy.version`.
 
@@ -53,6 +53,8 @@ Use Conventional Commits:
 
 Commit messages are enforced by `.husky/commit-msg`, which calls `scripts/check-commit-msg.mjs`.
 
+`agent commit` provides an interactive type selector and builds a valid Conventional Commit message for already staged changes.
+
 Allowed commit types are:
 
 - `feat`
@@ -71,7 +73,7 @@ Examples:
 
 ```txt
 feat: add workflow command
-fix(cli): handle invalid template
+fix(cli): handle invalid capability
 refactor!: change generated config compatibility
 ```
 
@@ -128,7 +130,7 @@ Both publish commands run `build:plain`, tests, package content checks, and then
 Release steps:
 
 1. Run `npm run build -- --release <type>` to bump versions and compile.
-2. Ensure `src/version.ts` derives CLI and template versions correctly.
+2. Ensure `src/version.ts` derives CLI and capability versions correctly.
 3. Update `CHANGELOG.md`.
 4. Update affected docs.
 5. Commit using a Conventional Commit message.

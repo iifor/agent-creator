@@ -1,6 +1,6 @@
 {
   "name": "agent-creator-cli",
-  "version": "0.1.3",
+  "version": "0.4.2",
   "description": "Docs-first CLI scaffolding for runnable, testable AI agent apps.",
   "type": "module",
   "bin": {
@@ -8,15 +8,13 @@
   },
   "files": [
     "dist",
-    "docs",
-    "scripts",
     "CHANGELOG.md",
     "README.md",
     "package.json"
   ],
   "scripts": {
     "build": "node scripts/build.mjs",
-    "build:plain": "node scripts/clean.mjs && tsc && node scripts/copy-templates.mjs",
+    "build:plain": "node scripts/clean.mjs && tsc && node scripts/copy-capabilities.mjs",
     "dev": "tsx src/index.ts",
     "test": "vitest run",
     "validate": "tsx src/index.ts validate",

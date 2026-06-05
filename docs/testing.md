@@ -4,11 +4,11 @@
 
 Root tests cover:
 
-- Template registry
+- Capability registry
 - Create command
 - Validate command
 
-The root Vitest config excludes `demo-agent/**` and `src/templates/**/files/**` so local generated acceptance projects and physical template test files do not become part of the root test suite.
+The root TypeScript build and Vitest config exclude generated acceptance projects and `src/capabilities/**/files/**` because physical capability files may contain unreplaced placeholders. Generated projects compile those files after placeholder replacement.
 
 Run:
 
@@ -33,6 +33,19 @@ npm install
 npm run build
 npm test
 ```
+
+Generated service Agent acceptance:
+
+```bash
+node dist/src/index.js create demo-agent --force
+cd demo-agent
+npm install
+npm run build
+npm test
+agent validate
+```
+
+Generated projects use `next build`; `npm run dev:agent` is available for CLI-only debugging.
 
 ## Full Acceptance
 

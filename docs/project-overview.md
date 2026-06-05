@@ -4,12 +4,12 @@ Agent Creator helps developers move from zero to a runnable Agent application wi
 
 ## Positioning
 
-Agent Creator is an engineering scaffold and runtime skeleton for Agent apps. It focuses on structure, observability, validation, testing, and safe extension points.
+Agent Creator is an engineering scaffold and complete base runtime for Agent apps. It focuses on structure, observability, validation, testing, and safe extension points while leaving product shape to the developer.
 
 ## v0.1 Scope
 
-- Generate one template: `tool-agent`
-- Run locally with a mock LLM
+- Generate one base capability: `agent-core`
+- Run locally as a service Agent with OpenAI-compatible LLM configuration
 - Execute mock tools
 - Validate generated project shape
 - Record trace files
@@ -19,7 +19,6 @@ Agent Creator is an engineering scaffold and runtime skeleton for Agent apps. It
 
 ## Out of Scope
 
-- Real LLM API calls
 - Real external APIs
 - RAG ingestion
 - Multi-agent collaboration
@@ -30,4 +29,4 @@ Agent Creator is an engineering scaffold and runtime skeleton for Agent apps. It
 
 ## Future Direction
 
-Future versions can add real model providers, richer templates, workflow generation, guard generation, RAG, multi-agent coordination, and a browser-based trace UI.
+Future versions can add richer model providers, `agent add workflow`, `agent add rag`, `agent add guard`, multi-agent coordination modules, and a browser-based trace UI.

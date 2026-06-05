@@ -1,5 +1,6 @@
 import { Command } from 'commander';
 import { addToolCommand } from '../commands/addTool.js';
+import { commitCommand } from '../commands/commit.js';
 import { createCommand } from '../commands/create.js';
 import { devCommand } from '../commands/dev.js';
 import { traceCommand } from '../commands/trace.js';
@@ -16,7 +17,8 @@ export function buildCli(): Command {
   program
     .command('create')
     .argument('<name>', 'project name')
-    .option('--template <template>', 'template name', 'tool-agent')
+    .option('--capability <capability>', 'agent capability name', 'agent-core')
+    .option('--mode <mode>', 'generation mode: package | service', 'service')
     .option('--package-manager <packageManager>', 'package manager', 'npm')
     .option('--force', 'overwrite an existing directory', false)
     .action(createCommand);
@@ -51,6 +53,15 @@ export function buildCli(): Command {
     .option('--list', 'list traces', false)
     .option('--id <traceId>', 'show a trace by id')
     .action(traceCommand);
+
+  program
+    .command('commit')
+    .description('Create a Conventional Commit from staged changes.')
+    .option('--type <type>', 'commit type')
+    .option('--scope <scope>', 'optional commit scope')
+    .option('--message <message>', 'commit description')
+    .option('--breaking', 'mark the commit as breaking', false)
+    .action(commitCommand);
 
   const add = program.command('add').description('Add generated project modules.');
   add

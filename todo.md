@@ -7,6 +7,11 @@
 
 ## Done
 
+- [x] Add interactive Conventional Commit command
+- [x] Add optional Next.js service example shell overlay
+- [x] Add service-aware project validation
+- [x] Update package checks for service overlay layout
+- [x] Make service-style Agent the default generated project shape
 - [x] Fix published CLI runtime dependency for `typescript`
 - [x] Add runtime dependency guard test
 - [x] Add package publish allowlist and clean build step
@@ -20,8 +25,8 @@
 - [x] Add generated project config version metadata
 - [x] Validate supported generated config versions
 - [x] Source CLI version from package.json
-- [x] Add physical template files for generated `tool-agent`
-- [x] Exclude physical template files from root test suite
+- [x] Add physical capability files for generated `agent-core`
+- [x] Exclude physical capability files from root test suite
 - [x] Add richer validate schema loading for generated `agent.config.ts`
 - [x] Add explicit `agent version` command
 - [x] Add explicit `agent help` command
@@ -30,7 +35,7 @@
 - [x] Exclude local generated demo-agent from root test suite
 - [x] Scaffold Agent Creator root project
 - [x] Implement CLI entry
-- [x] Implement tool-agent template
+- [x] Implement agent-core capability
 - [x] Implement create command
 - [x] Implement validate command
 - [x] Implement dev command
@@ -47,5 +52,5 @@
 - [ ] add workflow command
 - [ ] Web Dev Console
 - [ ] Real LLM provider
-- [ ] RAG template
-- [ ] Multi-agent template
+- [ ] add RAG module
+- [ ] add multi-agent module

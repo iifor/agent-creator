@@ -8,11 +8,13 @@ Creates a generated Agent project.
 
 Options:
 
-- `--template <template>` defaults to `tool-agent`
+- `--capability <capability>` defaults to `agent-core`
 - `--package-manager <packageManager>` defaults to `npm`
 - `--force` overwrites an existing target directory
 
-Only `tool-agent` is supported in v0.1. Unsupported templates return a clear error in Chinese explaining later planned templates.
+Only `agent-core` is supported in v0.1. Unsupported capabilities return a clear error in Chinese explaining that RAG, workflow, guard, and similar features are additive modules or commands.
+
+Generated projects are service-style Agent projects by default: Agent runtime, Next.js API routes, antd chat UI, and trace viewer.
 
 ## `agent validate`
 
@@ -36,7 +38,7 @@ The native Commander flag `agent --help` is also supported.
 
 ## `agent dev`
 
-Runs `npm run dev` in a generated Agent project. The generated project starts an interactive command-line console.
+Runs `npm run dev` in a generated Agent project. Generated projects start `next dev`; use `npm run dev:agent` inside the generated project for CLI debugging.
 
 ## `agent trace`
 
@@ -47,6 +49,27 @@ Options:
 - `--latest` shows the newest trace
 - `--list` lists trace IDs
 - `--id <traceId>` shows one trace
+
+## `agent commit`
+
+Creates a Conventional Commit from files already staged with Git.
+
+By default it interactively asks for:
+
+- commit type
+- optional scope
+- commit description
+
+Supported types are `feat`, `fix`, `hotfix`, `docs`, `test`, `refactor`, `chore`, `build`, `ci`, `perf`, and `revert`.
+
+Options:
+
+- `--type <type>` skips the type prompt
+- `--scope <scope>` sets an optional scope
+- `--message <message>` skips the description prompt
+- `--breaking` adds `!` before the colon
+
+The command does not stage files automatically. It fails with repair guidance when run outside a Git repository or when no staged changes exist.
 
 ## `agent add tool <toolName>`
 

@@ -17,7 +17,7 @@ describe('validate command', () => {
     const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
     process.chdir(dir);
     try {
-      await createCommand('demo-agent', { template: 'tool-agent', packageManager: 'npm' });
+      await createCommand('demo-agent', { capability: 'agent-core', packageManager: 'npm' });
       process.chdir(path.join(dir, 'demo-agent'));
       await validateCommand();
       expect(process.exitCode).not.toBe(1);
@@ -33,9 +33,9 @@ describe('validate command', () => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     process.chdir(dir);
     try {
-      await createCommand('demo-agent', { template: 'tool-agent', packageManager: 'npm' });
+      await createCommand('demo-agent', { capability: 'agent-core', packageManager: 'npm' });
       const projectDir = path.join(dir, 'demo-agent');
-      await fs.writeFile(path.join(projectDir, 'agent.config.ts'), 'export default { template: "bad-agent" };\n', 'utf8');
+      await fs.writeFile(path.join(projectDir, 'agent.config.ts'), 'export default { capability: "bad-agent" };\n', 'utf8');
       process.chdir(projectDir);
       await validateCommand();
       expect(process.exitCode).toBe(1);
@@ -52,7 +52,7 @@ describe('validate command', () => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     process.chdir(dir);
     try {
-      await createCommand('demo-agent', { template: 'tool-agent', packageManager: 'npm' });
+      await createCommand('demo-agent', { capability: 'agent-core', packageManager: 'npm' });
       const projectDir = path.join(dir, 'demo-agent');
       const configPath = path.join(projectDir, 'agent.config.ts');
       const config = await fs.readFile(configPath, 'utf8');
@@ -61,6 +61,42 @@ describe('validate command', () => {
       await validateCommand();
       expect(process.exitCode).toBe(1);
       expect(errorSpy.mock.calls.flat().join('\n')).toContain('Unsupported configVersion');
+    } finally {
+      process.chdir(previous);
+    }
+  });
+
+  it('passes a package-mode generated project', async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'agent-creator-'));
+    const previous = process.cwd();
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    process.chdir(dir);
+    try {
+      await createCommand('demo-agent', { capability: 'agent-core', packageManager: 'npm', mode: 'package' });
+      process.chdir(path.join(dir, 'demo-agent'));
+      await validateCommand();
+      expect(process.exitCode).not.toBe(1);
+    } finally {
+      process.chdir(previous);
+    }
+  });
+
+  it('fails when service framework is invalid for service projects', async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'agent-creator-'));
+    const previous = process.cwd();
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    process.chdir(dir);
+    try {
+      await createCommand('demo-agent', { capability: 'agent-core', packageManager: 'npm' });
+      const projectDir = path.join(dir, 'demo-agent');
+      const configPath = path.join(projectDir, 'agent.config.ts');
+      const config = await fs.readFile(configPath, 'utf8');
+      await fs.writeFile(configPath, config.replace("framework: 'next'", 'framework: undefined'), 'utf8');
+      process.chdir(projectDir);
+      await validateCommand();
+      expect(process.exitCode).toBe(1);
+      expect(errorSpy.mock.calls.flat().join('\n')).toContain('service-enabled projects must use Next.js');
     } finally {
       process.chdir(previous);
     }

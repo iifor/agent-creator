@@ -43,6 +43,17 @@ export async function validateCommand(): Promise<void> {
         reason: `Unsupported configVersion "${configResult.config.configVersion}".`,
         fix: `Use one of: ${SUPPORTED_CONFIG_VERSIONS.join(', ')}. Future versions may provide agent migrate.`,
       });
+    } else {
+      if (configResult.config.service.enabled && configResult.config.service.framework !== 'next') {
+        issues.push({
+          location: 'agent.config.ts:service',
+          reason: 'Generated service-enabled projects must use Next.js.',
+          fix: "Set service.framework to 'next' or set service.enabled to false for package mode.",
+        });
+      }
+      if (configResult.config.service.enabled) {
+        await validateServiceProject(cwd, issues);
+      }
     }
 
     const enabledTools = configResult.config?.tools.enabled ?? extractEnabledTools(await readText(configPath));
@@ -68,6 +79,37 @@ export async function validateCommand(): Promise<void> {
   }
 
   logger.success('Agent project validation passed.');
+}
+
+async function validateServiceProject(cwd: string, issues: ValidationIssue[]): Promise<void> {
+  const required = [
+    'src/app/page.tsx',
+    'src/app/api/agent/route.ts',
+    'src/app/api/traces/route.ts',
+    'src/app/api/traces/[traceId]/route.ts',
+    'src/components/AgentChat.tsx',
+    'src/components/TraceViewer.tsx',
+  ];
+
+  for (const file of required) {
+    if (!(await pathExists(path.join(cwd, file)))) {
+      issues.push({ location: file, reason: 'Required service file is missing.', fix: `Restore ${file} from the agent-core capability.` });
+    }
+  }
+
+  const packagePath = path.join(cwd, 'package.json');
+  if (!(await pathExists(packagePath))) return;
+  const packageJson = JSON.parse(await readText(packagePath)) as { dependencies?: Record<string, string> };
+  const dependencies = packageJson.dependencies ?? {};
+  for (const dependency of ['next', 'react', 'react-dom', 'antd', '@ant-design/nextjs-registry']) {
+    if (!dependencies[dependency]) {
+      issues.push({
+        location: 'package.json',
+        reason: `Generated service Agent requires dependency "${dependency}".`,
+        fix: `Add ${dependency} to dependencies.`,
+      });
+    }
+  }
 }
 
 function extractEnabledTools(configText: string): string[] {

@@ -1,6 +1,6 @@
 # Generated Agent Runtime
 
-The generated `tool-agent` is a runnable TypeScript project.
+The generated `agent-core` is a runnable service-style Agent project with a Next.js API/UI shell.
 
 ## Flow
 
@@ -57,14 +57,40 @@ AgentInput
 
 ## Defaults
 
-- Model provider: `mockLLM`
+- Model provider: OpenAI-compatible chat completions
 - Tools: `weather.query`, `math.calculate`
 - Trace directory: `.agent-traces`
 - Math parser: safe tokenizer/parser, no `eval`
+- Service shell: always enabled with Next.js
+- LLM configuration: `OPENAI_API_KEY`, `LLM_BASE_URL`, and `LLM_MODEL`
+
+## Service Shell
+
+Generated projects include:
+
+- `/` chat page
+- `/traces` trace viewer page
+- `POST /api/agent`
+- `GET /api/traces`
+- `GET /api/traces/[traceId]`
+
+The service shell is the default way to run, call, and inspect the Agent. The CLI console remains available through `npm run dev:agent`.
+
+## LLM Calls
+
+Generated Agents call a real OpenAI-compatible `/chat/completions` endpoint. They do not generate a mock LLM response and do not fall back to mock text when configuration or model calls fail.
+
+Required environment:
+
+```bash
+OPENAI_API_KEY=
+LLM_BASE_URL=https://api.openai.com/v1
+LLM_MODEL=gpt-4o-mini
+```
 
 ## Config Validation
 
-`agent validate` loads the generated project's `agent.config.ts` default export and validates it with the root Agent Creator zod schema. The generated config must keep the documented `tool-agent` shape: `name`, `template`, `version`, `configVersion`, `templateVersion`, `generatedBy`, `model`, `tools`, `constraints`, and `trace`.
+`agent validate` loads the generated project's `agent.config.ts` default export and validates it with the root Agent Creator zod schema. The generated config must keep the documented `agent-core` shape: `name`, `capability`, `version`, `configVersion`, `capabilityVersion`, `generatedBy`, `model`, `tools`, `constraints`, and `trace`.
 
 Version fields:
 
@@ -72,7 +98,7 @@ Version fields:
 {
   version: '0.1.0',
   configVersion: '0.1',
-  templateVersion: '0.1.0',
+  capabilityVersion: '0.1.0',
   generatedBy: {
     name: 'agent-creator',
     version: '0.1.0',
@@ -82,4 +108,4 @@ Version fields:
 
 `configVersion` must be supported by the current CLI. Unsupported config versions fail validation with upgrade guidance.
 
-The generated project README also records the Agent Creator CLI version, template version, and config schema version used at creation time.
+The generated project README also records the Agent Creator CLI version, capability version, and config schema version used at creation time.

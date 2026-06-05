@@ -27,7 +27,7 @@ Use Conventional Commits:
   feat: add a new command
   fix(cli): handle invalid options
   hotfix: patch release issue
-  refactor!: change template compatibility
+  refactor!: change capability compatibility
 
 Allowed types: ${allowedTypes.join(', ')}
 `);

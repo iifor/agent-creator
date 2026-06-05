@@ -1,9 +1,10 @@
-import type { TemplateName } from './template.js';
+import type { AgentCapabilityName } from './capability.js';
 
 export interface CreateOptions {
-  template?: TemplateName | string;
+  capability?: AgentCapabilityName | string;
   packageManager?: 'npm' | string;
   force?: boolean;
+  mode?: 'package' | 'service' | string;
 }
 
 export interface AddToolOptions {
