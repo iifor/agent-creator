@@ -2,6 +2,7 @@ import type { ModelGenerateInput, ModelGenerateOutput, ModelProvider, OpenAIComp
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_MAX_RETRIES = 1;
+export const DEFAULT_MODEL = 'gpt-4o-mini';
 
 export interface OpenAICompatibleProviderOptions {
   fetch?: typeof globalThis.fetch;
@@ -10,7 +11,7 @@ export interface OpenAICompatibleProviderOptions {
 export function normalizeModelConfig(config: OpenAICompatibleModelConfig): Required<Omit<OpenAICompatibleModelConfig, 'headers'>> & { headers: Record<string, string> } {
   const baseUrl = requireValue(config.baseUrl, 'model.baseUrl').replace(/\/+$/, '');
   const apiKey = requireValue(config.apiKey, 'model.apiKey');
-  const model = requireValue(config.model, 'model.model');
+  const model = config.model?.trim() || DEFAULT_MODEL;
   return {
     baseUrl,
     apiKey,

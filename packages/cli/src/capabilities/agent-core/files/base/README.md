@@ -6,48 +6,64 @@ Capability: `agent-core` v{{capabilityVersion}}
 Core: `@agent-creator/core` v{{coreVersion}}  
 Config schema: `{{configVersion}}`
 
-This is a thin Agent project powered by `@agent-creator/core`.
+This is an independent runnable Agent project powered by `@agent-creator/core`.
 
-## Configure The Model
+## Configure The Agent
+
+Open `agent.config.ts` and set the minimum model configuration:
+
+```ts
+model: {
+  baseUrl: 'https://api.openai.com/v1',
+  apiKey: 'your-key',
+  model: 'gpt-4o-mini', // optional; defaults to gpt-4o-mini
+}
+```
+
+You can also keep the generated environment-variable reads and set:
 
 ```bash
 export LLM_BASE_URL=https://api.openai.com/v1
 export OPENAI_API_KEY=your-key
+# Optional override. Defaults to gpt-4o-mini.
 export LLM_MODEL=gpt-4o-mini
 ```
 
-Core requires `baseUrl`, `apiKey`, and `model`. This generated project reads the environment and passes those values explicitly to `createAgent`.
+## Run
 
-## Commands
+Package mode starts a command-line chat:
 
 ```bash
 npm install
-npm run build
-npm test
 npm run dev
-agent validate
+```
+
+After build:
+
+```bash
+npm run build
+npm start
+```
+
+Service mode starts a Next.js web chat:
+
+```bash
+npm install
+npm run dev
+```
+
+Then open the printed local URL and chat in the browser. Service mode also keeps a CLI debug entry:
+
+```bash
+npm run dev:agent
+```
+
+## Customize Capabilities
+
+Add skills and compose the Agent in `src/index.ts`:
+
+```bash
 agent add skill calendar
 ```
 
-## Compose The Agent
-
 `src/index.ts` creates the Builder, registers every Skill from `src/skills/index.ts`, and calls `build()`.
-
-```ts
-import { createAgent } from '@agent-creator/core';
-
-const agent = createAgent({
-  model: {
-    baseUrl: 'https://api.openai.com/v1',
-    apiKey: '...',
-    model: 'gpt-4o-mini',
-  },
-})
-  .useSkill(mySkill)
-  .useMemory(myMemory)
-  .usePlanner(myPlanner)
-  .useExecutor(myExecutor)
-  .build();
-```
-
-Use `useModel`, `useGuard`, and `useTrace` to replace the remaining default modules.

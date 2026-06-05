@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
-    "dev:agent": "tsx src/dev.ts",
+    "dev:agent": "tsx src/cli.ts",
     "build": "next build",
     "start": "next start",
     "test": "vitest run",

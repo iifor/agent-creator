@@ -1,16 +1,16 @@
 const config = {
-  name: '{{projectName}}',
+  name: 'examples/xapp-mall-builder-agent',
   capability: 'agent-core',
-  version: '{{capabilityVersion}}',
-  configVersion: '{{configVersion}}',
-  capabilityVersion: '{{capabilityVersion}}',
+  version: '0.4.2',
+  configVersion: '0.1',
+  capabilityVersion: '0.4.2',
   generatedBy: {
     name: 'agent-creator',
-    version: '{{cliVersion}}',
+    version: '0.4.2',
   },
   service: {
-    enabled: {{serviceEnabled}},
-    framework: {{serviceFramework}},
+    enabled: false,
+    framework: undefined,
   },
   model: {
     // Minimum required configuration: baseUrl and apiKey.
@@ -24,6 +24,7 @@ const config = {
   skills: {
     enabled: [
       // agent-creator:skills
+      'xapp.build',
     ],
   },
 };

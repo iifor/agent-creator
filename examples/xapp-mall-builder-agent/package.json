@@ -1,11 +1,11 @@
 {
-  "name": "{{projectName}}",
-  "version": "{{capabilityVersion}}",
+  "name": "xapp-mall-builder-agent",
+  "version": "0.4.2",
   "type": "module",
   "main": "./dist/src/index.js",
   "types": "./dist/src/index.d.ts",
   "bin": {
-    "{{projectName}}": "./dist/src/cli.js"
+    "xapp-mall-builder-agent": "./dist/src/cli.js"
   },
   "exports": {
     ".": {
@@ -21,7 +21,8 @@
     "validate": "agent validate"
   },
   "dependencies": {
-    "@agent-creator/core": "^{{coreVersion}}",
+    "@agent-creator/core": "file:../../packages/core",
+    "node-pty": "^1.0.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {

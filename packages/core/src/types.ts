@@ -3,7 +3,7 @@ import type { z } from 'zod';
 export interface OpenAICompatibleModelConfig {
   baseUrl: string;
   apiKey: string;
-  model: string;
+  model?: string;
   timeoutMs?: number;
   maxRetries?: number;
   headers?: Record<string, string>;

@@ -6,11 +6,21 @@ describe('OpenAI-compatible provider', () => {
     expect(normalizeModelConfig({
       baseUrl: 'https://example.test/v1///',
       apiKey: 'key',
-      model: 'model',
     })).toMatchObject({
       baseUrl: 'https://example.test/v1',
+      model: 'gpt-4o-mini',
       timeoutMs: 30000,
       maxRetries: 1,
+    });
+  });
+
+  it('lets an explicit model override the default', () => {
+    expect(normalizeModelConfig({
+      baseUrl: 'https://example.test/v1',
+      apiKey: 'key',
+      model: 'custom-model',
+    })).toMatchObject({
+      model: 'custom-model',
     });
   });
 
@@ -37,6 +47,22 @@ describe('OpenAI-compatible provider', () => {
     expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toMatchObject({
       model: 'test-model',
       messages: [{ role: 'user', content: 'hi' }],
+    });
+  });
+
+  it('sends the default model when model is omitted', async () => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({
+      choices: [{ message: { content: 'hello' } }],
+    }), { status: 200 }));
+    const provider = createOpenAICompatibleProvider({
+      baseUrl: 'https://example.test/v1/',
+      apiKey: 'secret',
+      maxRetries: 0,
+    }, { fetch: fetchMock as typeof fetch });
+
+    await provider.generate({ task: 'reply', input: 'hi', memory: [] });
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toMatchObject({
+      model: 'gpt-4o-mini',
     });
   });
 

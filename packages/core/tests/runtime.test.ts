@@ -19,7 +19,27 @@ describe('agent builder', () => {
     expect(() => createAgent(undefined as never)).toThrow('model configuration is required');
     expect(() => createAgent({ model: { ...modelConfig, baseUrl: ' ' } })).toThrow('model.baseUrl is required');
     expect(() => createAgent({ model: { ...modelConfig, apiKey: '' } })).toThrow('model.apiKey is required');
-    expect(() => createAgent({ model: { ...modelConfig, model: '' } })).toThrow('model.model is required');
+    expect(() => createAgent({ model: { ...modelConfig, model: '' } })).not.toThrow();
+  });
+
+  it('runs with baseUrl and apiKey only when a model provider is supplied', async () => {
+    const agent = createAgent({
+      model: {
+        baseUrl: 'https://example.test/v1/',
+        apiKey: 'test-key',
+      },
+    })
+      .useModel({
+        async generate() {
+          return { text: 'minimal config works' };
+        },
+      })
+      .build();
+
+    await expect(agent.run({ input: 'hello' })).resolves.toMatchObject({
+      success: true,
+      message: 'minimal config works',
+    });
   });
 
   it('runs with an overridden model provider', async () => {
