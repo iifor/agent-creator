@@ -9,7 +9,7 @@ Agent Creator provides a stable npm Agent runtime and a CLI for creating thin co
 ## Packages
 
 - `packages/core`: published as `@agent-creator/core`.
-- `packages/cli`: published as `agent-creator-cli` with the `agent` binary.
+- `packages/cli`: published as `@agent-creator/cli` with the `agent` binary.
 - Generated package projects: reusable business Agents that depend on core.
 - Generated service projects: the same business Agent plus a Next.js UI/API shell.
 

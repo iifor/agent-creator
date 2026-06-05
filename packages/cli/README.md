@@ -1,4 +1,4 @@
-# agent-creator-cli
+# @agent-creator/cli
 
 CLI for creating package or service projects powered by `@agent-creator/core`.
 

@@ -6,7 +6,7 @@ run('npm', ['run', 'build:plain']);
 run('npm', ['test']);
 run('node', ['scripts/check-package-contents.mjs']);
 run('npm', ['publish', '--workspace', '@agent-creator/core', '--access', 'public', '--tag', tag]);
-run('npm', ['publish', '--workspace', 'agent-creator-cli', '--access', 'public', '--tag', tag]);
+run('npm', ['publish', '--workspace', '@agent-creator/cli', '--access', 'public', '--tag', tag]);
 
 function readTag(args) {
   for (let index = 0; index < args.length; index += 1) {

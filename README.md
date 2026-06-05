@@ -5,7 +5,7 @@ Agent Creator is an npm workspace for a composable Agent runtime and the CLI tha
 ## Packages
 
 - `@agent-creator/core`: Agent Builder, Skill registry, memory, planning, execution, guards, traces, and OpenAI-compatible models.
-- `agent-creator-cli`: the `agent` binary for creating package or Next.js service projects.
+- `@agent-creator/cli`: the `agent` binary for creating package or Next.js service projects.
 
 ## Core Usage
 

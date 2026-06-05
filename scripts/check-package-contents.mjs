@@ -11,7 +11,7 @@ const packages = [
     forbiddenPrefixes: ['src/', 'tests/'],
   },
   {
-    name: 'agent-creator-cli',
+    name: '@agent-creator/cli',
     cwd: path.join(root, 'packages/cli'),
     required: [
       'package.json',
