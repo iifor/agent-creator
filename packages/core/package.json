@@ -1,6 +1,6 @@
 {
   "name": "@agent-creator/core",
-  "version": "0.4.2",
+  "version": "0.5.0",
   "description": "Composable Agent runtime with skills, memory, planning, execution, and OpenAI-compatible models.",
   "type": "module",
   "main": "./dist/index.js",
