@@ -21,6 +21,10 @@ const config = {
     timeoutMs: 30000,
     maxRetries: 1,
   },
+  webhook: {
+    url: process.env.WEBHOOK_URL ?? '',
+    timeoutMs: 10000,
+  },
   skills: {
     enabled: [
       // agent-creator:skills

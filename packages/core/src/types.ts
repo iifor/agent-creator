@@ -1,4 +1,5 @@
 import type { z } from 'zod';
+import type { WebhookConfig, WebhookService } from './skills/webhook.js';
 
 export interface OpenAICompatibleModelConfig {
   baseUrl: string;
@@ -6,11 +7,17 @@ export interface OpenAICompatibleModelConfig {
   model?: string;
   timeoutMs?: number;
   maxRetries?: number;
+  retryBackoffMs?: number;
   headers?: Record<string, string>;
+  systemPrompt?: string;
+  temperature?: number;
+  maxTokens?: number;
+  responseFormat?: 'text' | 'json_object' | Record<string, unknown>;
 }
 
 export interface CreateAgentOptions {
   model: OpenAICompatibleModelConfig;
+  webhook?: WebhookConfig;
   /** @deprecated Register skills with builder.useSkill(). */
   tools?: ToolDefinition[];
   /** @deprecated Register skills with builder.useSkill(). */
@@ -41,7 +48,26 @@ export interface AgentOutput {
   data?: unknown;
   warnings?: string[];
   errors?: string[];
+  errorDetails?: AgentError[];
   traceId?: string;
+}
+
+export type AgentErrorCode =
+  | 'guard_blocked'
+  | 'runtime_error'
+  | 'skill_not_found'
+  | 'skill_input_invalid'
+  | 'skill_output_invalid'
+  | 'skill_timeout'
+  | 'skill_execution_failed'
+  | 'model_request_failed'
+  | 'model_response_invalid'
+  | 'empty_plan';
+
+export interface AgentError {
+  code: AgentErrorCode | string;
+  message: string;
+  details?: unknown;
 }
 
 export interface SkillContext {
@@ -49,6 +75,8 @@ export interface SkillContext {
   sessionId?: string;
   userId?: string;
   metadata?: Record<string, unknown>;
+  webhook: WebhookService;
+  trace: TraceRun;
   emitProgress?(event: Omit<AgentProgressEvent, 'traceId' | 'at'>): Promise<void>;
 }
 
@@ -57,6 +85,10 @@ export interface Skill<I = unknown, O = unknown> {
   description: string;
   inputSchema: z.ZodType<I>;
   outputSchema: z.ZodType<O>;
+  permission?: 'public' | 'external_api' | 'user_private';
+  timeoutMs?: number;
+  retry?: number;
+  tags?: string[];
   execute(input: I, context: SkillContext): Promise<O>;
 }
 
@@ -82,6 +114,14 @@ export interface ModelGenerateInput {
 export interface ModelGenerateOutput {
   text: string;
   data?: unknown;
+  usage?: ModelUsage;
+}
+
+export interface ModelUsage {
+  promptTokens?: number;
+  completionTokens?: number;
+  totalTokens?: number;
+  raw?: unknown;
 }
 
 export interface ModelProvider {
@@ -91,7 +131,9 @@ export interface ModelProvider {
 export interface AgentContext {
   input: AgentInput;
   memory: MemoryMessage[];
-  availableSkills: ReadonlyArray<Pick<Skill, 'name' | 'description'>>;
+  availableSkills: ReadonlyArray<Pick<Skill, 'name' | 'description' | 'inputSchema' | 'permission' | 'tags'>>;
+  webhook: WebhookService;
+  trace: TraceRun;
 }
 
 export interface AgentPlan {
@@ -115,6 +157,7 @@ export interface ExecutorContext {
   model: ModelProvider;
   skills: SkillRegistryLike;
   trace: TraceRun;
+  webhook: WebhookService;
   emitProgress(event: Omit<AgentProgressEvent, 'traceId' | 'at'>): Promise<void>;
 }
 

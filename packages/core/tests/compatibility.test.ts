@@ -1,6 +1,15 @@
 import { z } from 'zod';
 import { describe, expect, it } from 'vitest';
-import { createAgent, ToolRegistry, type ToolDefinition } from '../src/index.js';
+import { NoopWebhookService, createAgent, ToolRegistry, type SkillContext, type ToolDefinition } from '../src/index.js';
+
+const testSkillContext: SkillContext = {
+  traceId: 'trace',
+  webhook: new NoopWebhookService(),
+  trace: {
+    append() {},
+    end() {},
+  },
+};
 
 describe('tool compatibility', () => {
   it('adapts legacy tools to skills', async () => {
@@ -37,7 +46,7 @@ describe('tool compatibility', () => {
       },
     });
 
-    await expect(registry.executeTool('legacy.echo', 'ok', { traceId: 'trace' })).resolves.toBe('ok');
+    await expect(registry.executeTool('legacy.echo', 'ok', testSkillContext)).resolves.toBe('ok');
 
     const agent = createAgent({
       model: { baseUrl: 'https://example.test/v1', apiKey: 'key', model: 'model' },

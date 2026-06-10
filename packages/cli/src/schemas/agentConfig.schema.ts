@@ -21,6 +21,10 @@ export const agentConfigSchema = z.object({
     timeoutMs: z.number().positive(),
     maxRetries: z.number().int().nonnegative(),
   }),
+  webhook: z.object({
+    url: z.string(),
+    timeoutMs: z.number().positive().optional(),
+  }).optional(),
   skills: z.object({
     enabled: z.array(z.string().min(1)),
   }),

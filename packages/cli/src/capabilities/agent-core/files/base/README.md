@@ -8,6 +8,38 @@ Config schema: `{{configVersion}}`
 
 This is an independent runnable Agent project powered by `@agent-creator/core`.
 
+## 5 Minute Integration
+
+```bash
+npm install
+cp .env.example .env
+npm run dev
+```
+
+Edit `.env` and set `OPENAI_API_KEY`. Service mode exposes:
+
+```bash
+curl -X POST http://localhost:3000/api/agent \
+  -H "content-type: application/json" \
+  -d '{"input":"Hello agent","sessionId":"demo"}'
+```
+
+TypeScript callers can use the generated HTTP client:
+
+```ts
+import { runAgentHttp } from './src/client.js';
+
+const output = await runAgentHttp({
+  baseUrl: 'http://localhost:3000',
+  input: 'Hello agent',
+  sessionId: 'demo',
+});
+```
+
+After publishing or linking this generated package, consumers can import the client as `{{projectName}}/client`.
+
+See `docs/api.md` for the full HTTP contract, streaming format, optional `AGENT_API_KEY` auth, and production notes.
+
 ## Configure The Agent
 
 Open `agent.config.ts` and set the minimum model configuration:
@@ -28,6 +60,8 @@ export OPENAI_API_KEY=your-key
 # Optional override. Defaults to gpt-4o-mini.
 export LLM_MODEL=gpt-4o-mini
 ```
+
+The generated `.env.example` contains the same variables. Service mode also supports optional `AGENT_API_KEY` bearer-token authentication.
 
 ## Run
 
@@ -58,6 +92,12 @@ Then open the printed local URL and chat in the browser. Service mode also keeps
 npm run dev:agent
 ```
 
+Health check:
+
+```bash
+curl http://localhost:3000/api/agent/health
+```
+
 ## Customize Capabilities
 
 Add skills and compose the Agent in `src/index.ts`:
@@ -67,3 +107,27 @@ agent add skill calendar
 ```
 
 `src/index.ts` creates the Builder, registers every Skill from `src/skills/index.ts`, and calls `build()`.
+
+Webhook is available as a built-in optional Skill adapter:
+
+```bash
+agent add skill webhook
+```
+
+Then set `WEBHOOK_URL` in `.env`. You can call it directly with `metadata.skill = 'webhook'`, or configure `createAgent({ webhook: { url } })` in `src/index.ts` and call `context.webhook?.notify(...)` from your own Skills.
+
+To call a specific Skill directly through the default planner, pass metadata:
+
+```ts
+await runAgent({
+  input: 'Run calendar search',
+  metadata: {
+    skill: 'calendar',
+    skillInput: { query: 'today' },
+  },
+});
+```
+
+## Production Notes
+
+The default memory provider is process-local in-memory storage. It is useful for development, but production deployments should replace it with a persistent `MemoryProvider`.

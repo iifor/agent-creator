@@ -1,10 +1,38 @@
 export { AgentBuilder, createAgent } from './runtime.js';
-export { DefaultExecutor, DefaultGuard, DefaultPlanner, InMemoryProvider, NoopTraceProvider } from './defaults.js';
+export {
+  BasicGuard,
+  ConsoleTraceProvider,
+  DefaultExecutor,
+  DefaultGuard,
+  DefaultPlanner,
+  InMemoryProvider,
+  InMemoryTraceProvider,
+  ModelSkillPlanner,
+  NoopTraceProvider,
+} from './defaults.js';
 export { createOpenAICompatibleProvider, normalizeModelConfig } from './openAICompatibleProvider.js';
+export {
+  HttpWebhookService,
+  NoopWebhookService,
+  buildWebhookPayload,
+  createWebhookService,
+  createWebhookSkill,
+  notifyWebhook,
+  sendWebhook,
+} from './skills/webhook.js';
+export type {
+  WebhookConfig,
+  WebhookDeliveryResult,
+  WebhookEvent,
+  WebhookPayload,
+  WebhookService,
+} from './skills/webhook.js';
 export { SkillRegistry, ToolRegistry, toolToSkill } from './skillRegistry.js';
 export type {
   Agent,
   AgentContext,
+  AgentError,
+  AgentErrorCode,
   AgentInput,
   AgentOutput,
   AgentPlan,
@@ -21,6 +49,7 @@ export type {
   ModelGenerateInput,
   ModelGenerateOutput,
   ModelProvider,
+  ModelUsage,
   OpenAICompatibleModelConfig,
   Planner,
   Skill,

@@ -101,4 +101,26 @@ describe('validate command', () => {
       process.chdir(previous);
     }
   });
+
+  it('fails when service integration files are missing', async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'agent-creator-'));
+    const previous = process.cwd();
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    process.chdir(dir);
+    try {
+      await createCommand('demo-agent', { capability: 'agent-core', packageManager: 'npm' });
+      const projectDir = path.join(dir, 'demo-agent');
+      await fs.rm(path.join(projectDir, 'src/app/api/agent/health/route.ts'));
+      await fs.rm(path.join(projectDir, 'docs/api.md'));
+      process.chdir(projectDir);
+      await validateCommand();
+      expect(process.exitCode).toBe(1);
+      const output = errorSpy.mock.calls.flat().join('\n');
+      expect(output).toContain('src/app/api/agent/health/route.ts');
+      expect(output).toContain('docs/api.md');
+    } finally {
+      process.chdir(previous);
+    }
+  });
 });

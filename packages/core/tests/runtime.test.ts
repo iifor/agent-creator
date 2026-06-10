@@ -2,6 +2,11 @@ import { z } from 'zod';
 import { describe, expect, it } from 'vitest';
 import {
   createAgent,
+  BasicGuard,
+  InMemoryProvider,
+  InMemoryTraceProvider,
+  ModelSkillPlanner,
+  type AgentContext,
   type AgentProgressEvent,
   type Executor,
   type MemoryProvider,
@@ -113,6 +118,8 @@ describe('agent builder', () => {
       'agent.completed',
     ]));
     expect(events.every((event) => event.traceId && event.at && event.message)).toBe(true);
+    expect(events.map((event) => event.message)).toContain('Agent started.');
+    expect(events.map((event) => event.message)).toContain('Plan created.');
   });
 
   it('lets skills emit custom progress events', async () => {
@@ -229,5 +236,245 @@ describe('agent builder', () => {
   it('validates runtime modules at build time', () => {
     const builder = createAgent({ model: modelConfig }).usePlanner({} as Planner);
     expect(() => builder.build()).toThrow('planner.plan must be a function');
+  });
+
+  it('supports model-driven skill selection through ModelSkillPlanner', async () => {
+    const skill: Skill<string, string> = {
+      name: 'calendar.search',
+      description: 'Search calendar events',
+      inputSchema: z.string(),
+      outputSchema: z.string(),
+      async execute(input) {
+        return `searched: ${input}`;
+      },
+    };
+    const selectorModel = {
+      async generate() {
+        return { text: 'calendar.search' };
+      },
+    };
+    const agent = createAgent({ model: modelConfig })
+      .useSkill(skill)
+      .usePlanner(new ModelSkillPlanner(selectorModel))
+      .build();
+
+    await expect(agent.run({ input: 'find meetings' })).resolves.toMatchObject({
+      success: true,
+      data: 'searched: find meetings',
+    });
+  });
+
+  it('falls back to model responses when model-driven skill selection returns none', async () => {
+    const selectorModel = {
+      async generate(input: { task: string }) {
+        return { text: input.task === 'select_skill' ? 'none' : 'fallback response' };
+      },
+    };
+    const agent = createAgent({ model: modelConfig })
+      .useSkill({
+        name: 'calendar.search',
+        description: 'Search calendar events',
+        inputSchema: z.string(),
+        outputSchema: z.string(),
+        async execute(input) {
+          return input;
+        },
+      })
+      .useSkill({
+        name: 'mail.search',
+        description: 'Search mail',
+        inputSchema: z.string(),
+        outputSchema: z.string(),
+        async execute(input) {
+          return input;
+        },
+      })
+      .useModel(selectorModel)
+      .usePlanner(new ModelSkillPlanner(selectorModel))
+      .build();
+
+    await expect(agent.run({ input: 'just chat' })).resolves.toMatchObject({
+      success: true,
+      message: 'fallback response',
+    });
+  });
+
+  it('blocks input with BasicGuard rules', async () => {
+    const agent = createAgent({ model: modelConfig })
+      .useGuard(new BasicGuard({ maxInputLength: 5, blocklist: ['bad'] }))
+      .build();
+
+    await expect(agent.run({ input: 'too long' })).resolves.toMatchObject({
+      success: false,
+      errorDetails: [{ code: 'guard_blocked' }],
+    });
+
+    const blocklistAgent = createAgent({ model: modelConfig })
+      .useGuard(new BasicGuard({ blocklist: [/secret/i] }))
+      .build();
+    await expect(blocklistAgent.run({ input: 'contains secret' })).resolves.toMatchObject({
+      success: false,
+      errorDetails: [{ code: 'guard_blocked' }],
+    });
+  });
+
+  it('bounds in-memory sessions and messages', () => {
+    let now = 1000;
+    const memory = new InMemoryProvider({
+      maxMessagesPerSession: 2,
+      maxSessions: 2,
+      ttlMs: 100,
+      now: () => now,
+    });
+
+    memory.append('s1', { role: 'user', content: '1', at: '1' });
+    memory.append('s1', { role: 'agent', content: '2', at: '2' });
+    memory.append('s1', { role: 'user', content: '3', at: '3' });
+    expect(memory.get('s1').map((message) => message.content)).toEqual(['2', '3']);
+
+    memory.append('s2', { role: 'user', content: 's2', at: '4' });
+    memory.append('s3', { role: 'user', content: 's3', at: '5' });
+    expect(memory.get('s1')).toEqual([]);
+    expect(memory.size()).toBe(2);
+
+    now = 1201;
+    expect(memory.get('s2')).toEqual([]);
+    expect(memory.size()).toBe(0);
+  });
+
+  it('records traces in memory', async () => {
+    const trace = new InMemoryTraceProvider();
+    const agent = createAgent({ model: modelConfig })
+      .useTrace(trace)
+      .useModel({
+        async generate() {
+          return { text: 'traced' };
+        },
+      })
+      .build();
+
+    const output = await agent.run({ input: 'trace me' });
+    const run = trace.get(output.traceId ?? '');
+    expect(run?.events.map((event) => event.type)).toContain('plan.created');
+    expect(run?.output?.message).toBe('traced');
+    expect(trace.list()).toHaveLength(1);
+  });
+
+  it('applies skill retry and timeout policies with structured errors', async () => {
+    let attempts = 0;
+    const retrySkill: Skill<string, string> = {
+      name: 'retry.echo',
+      description: 'Retry echo',
+      inputSchema: z.string(),
+      outputSchema: z.string(),
+      retry: 1,
+      async execute(input) {
+        attempts += 1;
+        if (attempts === 1) throw new Error('temporary failure');
+        return input;
+      },
+    };
+    const retryAgent = createAgent({ model: modelConfig }).useSkill(retrySkill).build();
+    await expect(retryAgent.run({ input: 'ok' })).resolves.toMatchObject({ data: 'ok' });
+    expect(attempts).toBe(2);
+
+    const timeoutSkill: Skill<string, string> = {
+      name: 'timeout.echo',
+      description: 'Timeout echo',
+      inputSchema: z.string(),
+      outputSchema: z.string(),
+      timeoutMs: 1,
+      async execute() {
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        return 'late';
+      },
+    };
+    const timeoutAgent = createAgent({ model: modelConfig }).useSkill(timeoutSkill).build();
+    await expect(timeoutAgent.run({ input: 'slow' })).resolves.toMatchObject({
+      success: false,
+      errorDetails: [{ code: 'skill_timeout' }],
+    });
+  });
+
+  it('lets skills call the configured webhook service', async () => {
+    const calls: unknown[] = [];
+    const skill: Skill<string, { ok: boolean }> = {
+      name: 'notify.skill',
+      description: 'Notify from skill',
+      inputSchema: z.string(),
+      outputSchema: z.object({ ok: z.boolean() }),
+      async execute(input, context) {
+        const result = await context.webhook?.notify({
+          event: 'build.completed',
+          message: input,
+        });
+        calls.push(result);
+        return { ok: true };
+      },
+    };
+
+    const agent = createAgent({ model: modelConfig })
+      .useWebhook({
+        async notify(payload) {
+          calls.push(payload);
+          return { delivered: true };
+        },
+      })
+      .useSkill(skill)
+      .build();
+
+    await expect(agent.run({ input: 'build done' })).resolves.toMatchObject({ success: true });
+    expect(calls).toEqual([
+      { event: 'build.completed', message: 'build done' },
+      { delivered: true },
+    ]);
+  });
+
+  it('lets planners call the configured webhook service', async () => {
+    const calls: unknown[] = [];
+    const planner: Planner = {
+      async plan(context: AgentContext) {
+        await context.webhook.notify({
+          event: 'build.completed',
+          message: 'Planner selected build workflow',
+        });
+        return { goal: 'reply', steps: [{ type: 'response', message: 'planned' }] };
+      },
+    };
+
+    const agent = createAgent({ model: modelConfig })
+      .useWebhook({
+        async notify(payload) {
+          calls.push(payload);
+          return { delivered: true };
+        },
+      })
+      .usePlanner(planner)
+      .build();
+
+    await expect(agent.run({ input: 'plan' })).resolves.toMatchObject({ message: 'planned' });
+    expect(calls).toEqual([{ event: 'build.completed', message: 'Planner selected build workflow' }]);
+  });
+
+  it('runs normally with the default no-op webhook service', async () => {
+    const skill: Skill<string, { delivered: boolean }> = {
+      name: 'noop.webhook',
+      description: 'Use default webhook',
+      inputSchema: z.string(),
+      outputSchema: z.object({ delivered: z.boolean() }),
+      async execute(_input, context) {
+        const result = await context.webhook?.notify({
+          event: 'build.completed',
+          message: 'No-op delivery',
+        });
+        return { delivered: Boolean(result?.delivered) };
+      },
+    };
+
+    const agent = createAgent({ model: modelConfig }).useSkill(skill).build();
+    await expect(agent.run({ input: 'noop' })).resolves.toMatchObject({
+      success: true,
+      data: { delivered: false },
+    });
   });
 });

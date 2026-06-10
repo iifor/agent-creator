@@ -87,7 +87,10 @@ async function validateServiceProject(cwd: string, issues: ValidationIssue[]): P
   const required = [
     'src/app/page.tsx',
     'src/app/api/agent/route.ts',
+    'src/app/api/agent/auth.ts',
+    'src/app/api/agent/health/route.ts',
     'src/components/AgentChat.tsx',
+    'docs/api.md',
   ];
 
   for (const file of required) {

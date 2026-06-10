@@ -12,6 +12,20 @@ Read:
 
 Do not begin by globally scanning all code.
 
+## Decision Discipline
+
+Do not act as a blind executor for every proposed implementation. Treat user ideas as proposals to assess.
+
+Before editing, consider:
+
+- Whether the proposal fits the architecture and public API direction.
+- Whether it creates security, runtime, compatibility, or maintenance risk.
+- Whether the benefit justifies the added complexity.
+- Whether a simpler alternative would satisfy the same goal.
+- Which tests and docs must change if the work proceeds.
+
+When the proposal is risky or misaligned, explain the concern and recommend a better path before implementation.
+
 ## Common Task Map
 
 - Core runtime change: read `docs/architecture.md`, then `packages/core/src/`.

@@ -31,11 +31,18 @@ AI agents and developers must read `docs/README.md` before inspecting source cod
 - Use marker comments for generated project edits.
 - Prefer explicit errors with repair guidance for CLI validation.
 
+## Proposal Review Rule
+
+AI agents and developers must not implement user proposals blindly. Before implementation, evaluate the goal, feasibility, architecture fit, risks, benefits, maintenance cost, and simpler alternatives.
+
+If a proposal is high-risk, low-benefit, insecure, or inconsistent with the project architecture, state the concern and recommend a safer approach before changing code. Proceed only when the approach is sound or the tradeoff is explicit.
+
 ## AI Workflow
 
 1. Read docs.
 2. Identify task-specific modules from docs.
 3. Read only relevant files.
-4. Modify code.
-5. Update docs and `todo.md` when required.
-6. Run focused tests.
+4. Evaluate feasibility, risk, benefit, and alternatives.
+5. Modify code.
+6. Update docs and `todo.md` when required.
+7. Run focused tests.

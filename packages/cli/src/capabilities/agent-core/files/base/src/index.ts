@@ -6,7 +6,7 @@ let configuredAgent: Agent | undefined;
 
 export function getAgent(): Agent {
   if (configuredAgent) return configuredAgent;
-  const builder = createAgent({ model: config.model });
+  const builder = createAgent({ model: config.model, webhook: config.webhook });
   for (const skill of skills) builder.useSkill(skill);
   configuredAgent = builder.build();
   return configuredAgent;
