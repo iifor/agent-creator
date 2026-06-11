@@ -1,6 +1,6 @@
 {
   "name": "@agent-creator/cli",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "CLI for creating projects powered by @agent-creator/core.",
   "type": "module",
   "bin": {
