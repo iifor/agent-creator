@@ -7,7 +7,7 @@ const packages = [
   {
     name: '@agent-creator/core',
     cwd: path.join(root, 'packages/core'),
-    required: ['package.json', 'README.md', 'dist/index.js', 'dist/index.d.ts'],
+    required: ['package.json', 'README.md', 'LICENSE', 'docs/core-usage.md', 'dist/index.js', 'dist/index.d.ts'],
     forbiddenPrefixes: ['src/', 'tests/'],
   },
   {
@@ -16,6 +16,7 @@ const packages = [
     required: [
       'package.json',
       'README.md',
+      'LICENSE',
       'dist/src/index.js',
       'dist/src/commands/validate.js',
       'dist/src/capabilities/agent-core/files/base/package.json',

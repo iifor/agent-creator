@@ -32,7 +32,7 @@ export const ${symbolName}: Guard = {
       return { allowed: false, reason: 'Input is required.' };
     }
 
-    const blockedPatterns = [
+    const blockedPatterns: RegExp[] = [
       // Add domain-specific block patterns for ${guardName}.
       // /delete\\s+all/i,
     ];

@@ -117,6 +117,10 @@ describe('webhook service', () => {
       message: 'Build completed',
     }, {
       traceId: 'trace_1',
+      executionId: 'execution_1',
+      attempt: 1,
+      idempotencyKey: 'idempotency_1',
+      signal: new AbortController().signal,
       webhook: new NoopWebhookService(),
       trace: {
         append() {},

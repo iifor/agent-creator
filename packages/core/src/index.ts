@@ -5,12 +5,27 @@ export {
   DefaultExecutor,
   DefaultGuard,
   DefaultPlanner,
+  DefaultSkillAuthorizer,
   InMemoryProvider,
   InMemoryTraceProvider,
   ModelSkillPlanner,
   NoopTraceProvider,
 } from './defaults.js';
 export { createOpenAICompatibleProvider, normalizeModelConfig } from './openAICompatibleProvider.js';
+export { FileTraceProvider } from './fileTraceProvider.js';
+export type { FileTraceProviderOptions } from './fileTraceProvider.js';
+export { TRACE_FORMAT_VERSION, redactTraceData } from './trace.js';
+export { StructuredSkillPlanner } from './structuredSkillPlanner.js';
+export type {
+  StructuredPlannerAction,
+  StructuredPlannerDecision,
+  StructuredSkillPlannerOptions,
+} from './structuredSkillPlanner.js';
+export { evaluateStructuredSkillPlanner } from './plannerEvaluation.js';
+export type {
+  StructuredPlannerEvaluationCase,
+  StructuredPlannerEvaluationMetrics,
+} from './plannerEvaluation.js';
 export {
   HttpWebhookService,
   NoopWebhookService,
@@ -34,6 +49,7 @@ export type {
   AgentError,
   AgentErrorCode,
   AgentInput,
+  AgentSkillInvocation,
   AgentOutput,
   AgentPlan,
   AgentPlanStep,
@@ -53,11 +69,17 @@ export type {
   OpenAICompatibleModelConfig,
   Planner,
   Skill,
+  SkillAuthorizationContext,
+  SkillAuthorizationResult,
+  SkillAuthorizer,
   SkillContext,
   SkillRegistryLike,
   ToolDefinition,
   ToolRegistryLike,
   TraceEvent,
+  TraceInputSummary,
+  TraceOutputSummary,
   TraceProvider,
   TraceRun,
+  StandardTraceDocument,
 } from './types.js';

@@ -26,6 +26,9 @@ describe('generated project acceptance scaffolds', () => {
 
       const index = await fs.readFile('src/index.ts', 'utf8');
       expect(index).toContain('builder.useGuard(guard)');
+      expect(index).toContain('export function invokeSkill');
+      const client = await fs.readFile('src/client.ts', 'utf8');
+      expect(client).toContain('Record<string, string>');
       const skillsIndex = await fs.readFile('src/skills/index.ts', 'utf8');
       expect(skillsIndex).toContain('calendarSkill');
       expect(skillsIndex).toContain('customerOnboardingWorkflow');
@@ -33,10 +36,12 @@ describe('generated project acceptance scaffolds', () => {
       const guardsIndex = await fs.readFile('src/guards/index.ts', 'utf8');
       expect(guardsIndex).toContain('domainPolicyGuard');
       expect(guardsIndex).toContain("'domain-policy'");
+      expect(await fs.readFile('src/guards/domain-policy.ts', 'utf8')).toContain('const blockedPatterns: RegExp[]');
 
       const workflow = await fs.readFile('src/skills/customer-onboarding-workflow.ts', 'utf8');
       expect(workflow).toContain("tags: ['workflow']");
       expect(workflow).toContain('failedSteps');
+      expect(workflow).toContain('steps: z.array(z.string().min(1)).min(1)');
     } finally {
       process.chdir(previous);
     }

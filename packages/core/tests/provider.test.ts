@@ -91,6 +91,29 @@ describe('OpenAI-compatible provider', () => {
     });
   });
 
+  it('sends assistant memory using the OpenAI-compatible role', async () => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({
+      choices: [{ message: { content: 'next' } }],
+    }), { status: 200 }));
+    const provider = createOpenAICompatibleProvider({
+      baseUrl: 'https://example.test/v1',
+      apiKey: 'secret',
+      maxRetries: 0,
+    }, { fetch: fetchMock as typeof fetch });
+
+    await provider.generate({
+      task: 'reply',
+      input: 'continue',
+      memory: [{ role: 'assistant', content: 'previous', at: 'now' }],
+    });
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toMatchObject({
+      messages: [
+        { role: 'assistant', content: 'previous' },
+        { role: 'user', content: 'continue' },
+      ],
+    });
+  });
+
   it('sends the default model when model is omitted', async () => {
     const fetchMock = vi.fn(async () => new Response(JSON.stringify({
       choices: [{ message: { content: 'hello' } }],

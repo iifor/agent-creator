@@ -12,13 +12,13 @@ OPENAI_API_KEY=your-openai-api-key
 LLM_MODEL=gpt-4o-mini
 ```
 
-Service mode also supports optional API authentication:
+Service mode requires API authentication in production:
 
 ```bash
 AGENT_API_KEY=replace-with-a-random-secret
 ```
 
-When `AGENT_API_KEY` is set, HTTP callers must send:
+Production startup without `AGENT_API_KEY` fails closed with HTTP 503. When configured, callers must send:
 
 ```http
 Authorization: Bearer replace-with-a-random-secret
@@ -37,7 +37,7 @@ const output = await runAgent({
 });
 ```
 
-The default memory provider is process-local in-memory storage. It is convenient for development, but production deployments should replace it with a persistent `MemoryProvider`.
+The default memory provider is process-local in-memory storage. Production mode refuses to build the Agent until `src/index.ts` registers a persistent `MemoryProvider`.
 
 ## POST /api/agent
 
@@ -60,9 +60,12 @@ Response:
   "intent": "generate_response",
   "message": "Hello! How can I help?",
   "data": {},
+  "requestId": "request_...",
   "traceId": "trace_..."
 }
 ```
+
+Clients may send `x-request-id`; otherwise the service generates one. The response repeats it in the `x-request-id` header and JSON output. Request bodies do not accept `metadata` or `userId`.
 
 Example:
 
@@ -72,7 +75,7 @@ curl -X POST http://localhost:3000/api/agent \
   -d '{"input":"Hello agent","sessionId":"demo"}'
 ```
 
-If `AGENT_API_KEY` is set:
+With `AGENT_API_KEY` configured:
 
 ```bash
 curl -X POST http://localhost:3000/api/agent \
@@ -88,11 +91,11 @@ Runs the Agent and streams progress as newline-delimited JSON (`application/x-nd
 Each line is one of:
 
 ```json
-{ "type": "progress", "event": { "type": "agent.started", "message": "Agent started", "traceId": "trace_...", "at": "..." } }
+{ "type": "progress", "event": { "type": "agent.started", "message": "Agent started", "requestId": "request_...", "traceId": "trace_...", "at": "..." } }
 ```
 
 ```json
-{ "type": "final", "output": { "success": true, "intent": "generate_response", "message": "Done", "traceId": "trace_..." } }
+{ "type": "final", "output": { "success": true, "intent": "generate_response", "message": "Done", "requestId": "request_...", "traceId": "trace_..." } }
 ```
 
 Example:
@@ -151,7 +154,7 @@ for await (const event of streamAgentHttp({
 }
 ```
 
-Pass `apiKey` when `AGENT_API_KEY` is enabled.
+Pass `apiKey` for production service calls.
 
 ## Webhook Skill And Runtime Service
 
@@ -167,18 +170,15 @@ Set the target URL in `.env`:
 WEBHOOK_URL=https://example.com/webhook
 ```
 
-Call it directly:
+Call it from trusted server code after registering a `SkillAuthorizer` for the `external_api` permission:
 
 ```ts
-await runAgent({
-  input: 'Notify webhook',
-  metadata: {
-    skill: 'webhook',
-    skillInput: {
-      event: 'build.completed',
-      message: 'Build finished',
-      logs: ['npm test passed'],
-    },
+await invokeSkill({
+  skill: 'webhook',
+  input: {
+    event: 'build.completed',
+    message: 'Build finished',
+    logs: ['npm test passed'],
   },
 });
 ```

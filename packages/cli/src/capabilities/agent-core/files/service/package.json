@@ -21,7 +21,7 @@
     "validate": "agent validate"
   },
   "dependencies": {
-    "@agent-creator/core": "^{{coreVersion}}",
+    "@agent-creator/core": "{{coreVersion}}",
     "@ant-design/nextjs-registry": "^1.0.2",
     "antd": "^5.21.6",
     "next": "^15.0.3",

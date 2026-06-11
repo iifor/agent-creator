@@ -8,15 +8,13 @@ The root package follows `MAJOR.MINOR.PATCH`.
 
 - `PATCH`: bug fixes, docs, internal refactors, and compatible validation improvements.
 - `MINOR`: compatible new features, commands, capabilities, or optional config fields.
-- `MAJOR`: breaking CLI behavior, incompatible capability structure, or unsupported config schema changes.
+- `MAJOR`: breaking CLI behavior, incompatible capability structure, or unsupported config schema changes after `1.0.0`.
 
 During `0.x`:
 
-- `0.1.x`: stabilize the current `agent-core` loop.
-- `0.2.x`: add `add guard` and `add workflow`.
-- `0.3.x`: add real LLM providers.
-- `0.4.x`: add RAG and multi-agent modules.
-- `1.0.0`: stabilize CLI, capability system, config schema, and trace format.
+- compatible features increment `MINOR`
+- breaking releases also increment `MINOR`, because the leading zero already signals API instability
+- `1.0.0` waits for stable public APIs, config schema, Trace format, and migration policy
 
 ## Version Layers
 
@@ -101,7 +99,7 @@ Release mapping:
 
 - `fix` / `hotfix` -> patch
 - `feat` -> minor
-- `breaking` -> major
+- `breaking` -> minor while the current version is `0.x`, major from `1.x`
 
 `npm run build` without `--release` fails. Internal validation may use `npm run build:plain` when it must compile without changing versions.
 
@@ -124,10 +122,12 @@ node ../packages/cli/dist/src/index.js validate
 Release dependency rule:
 
 - Any package statically imported by a workspace package's runtime source must be listed in that package's `dependencies`.
+- The CLI and generated pre-1.0 projects pin the exact synchronized `@agent-creator/core` version.
 - The test suite includes a runtime dependency guard to catch missing published-package dependencies before npm release.
 - `npm pack --dry-run` should show only the publish allowlist, not source tests or stale `dist` artifacts.
 - The `prepare` script installs Husky when possible but must not block npm packing/publishing in restricted environments.
 - `npm run check:package` enforces the publish allowlist and fails if source, tests, demo projects, traces, or local config files enter the tarball.
+- Package metadata includes repository, license, bugs, homepage, and security policy references. npm provenance remains disabled until the CI publication identity is defined.
 
 Publish commands:
 

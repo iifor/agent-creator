@@ -10,7 +10,9 @@ Options:
 
 - `--capability <capability>` defaults to `agent-core`
 - `--package-manager <packageManager>` defaults to `npm`
-- `--force` overwrites an existing target directory
+- `--force` overwrites only a matching Agent Creator-owned target directory
+
+Project names must be lowercase, non-scoped npm names without path separators. Generated projects include `.agent-creator.json`; `--force` refuses to delete an unmarked directory or a directory whose marker names another project.
 
 Only `agent-core` is supported in v0.1. Unsupported capabilities return a clear error in Chinese explaining that RAG, workflow, guard, and similar features are additive modules or commands.
 
@@ -21,9 +23,15 @@ Generated projects depend on `@agent-creator/core` and contain only configuratio
 
 Validates that the current directory looks like a generated Agent project.
 
-It checks required files, transpiles and loads `agent.config.ts`, validates the default export with the root zod `AgentConfig` schema, verifies that configured Skills, Guards, and Workflows are registered, checks matching generated files, and reports duplicate enabled names.
+It checks required files, statically parses `agent.config.ts`, validates the default export with the root zod `AgentConfig` schema, verifies that configured Skills, Guards, and Workflows are registered, checks matching generated files, and reports duplicate enabled names.
 
-If config loading fails, confirm that `agent.config.ts` has a valid default export and only uses config-time imports that can be resolved during validation.
+Static config supports literals, arrays, nested objects, `undefined`, and `process.env.NAME ?? fallback`. Calls, spreads, computed properties, dynamic imports, and other executable expressions are rejected and never evaluated.
+
+Focused validation:
+
+- `agent validate security`: checks production authentication, `runtimeMode`, persistent Memory registration, and `external_api` authorization.
+- `agent validate env`: checks model and service deployment variables.
+- `agent validate runtime`: imports the runtime through the installed TypeScript runner and builds the Agent without a model request.
 
 ## `agent version`
 
@@ -51,7 +59,7 @@ Options:
 - `--list` lists trace IDs
 - `--id <traceId>` shows one trace
 
-This command remains for compatibility with projects that configure a file-backed Trace provider.
+Generated projects configure `FileTraceProvider` in development, so this command works without extra setup.
 
 ## `agent add skill <skillName>`
 

@@ -27,6 +27,7 @@ export function buildCli(): Command {
 
   program
     .command('validate')
+    .argument('[check]', 'validation check: structure | security | env | runtime', 'structure')
     .description('Validate the current generated Agent project.')
     .action(validateCommand);
 

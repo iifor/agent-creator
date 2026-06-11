@@ -4,6 +4,10 @@ import { NoopWebhookService, createAgent, ToolRegistry, type SkillContext, type 
 
 const testSkillContext: SkillContext = {
   traceId: 'trace',
+  executionId: 'execution',
+  attempt: 1,
+  idempotencyKey: 'idempotency',
+  signal: new AbortController().signal,
   webhook: new NoopWebhookService(),
   trace: {
     append() {},

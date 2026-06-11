@@ -6,6 +6,11 @@
 
 ## Done
 
+- [x] Prepare the 0.7.0 breaking release with synchronized exact versions, package metadata, security policy, and package acceptance
+- [x] Add versioned redacted Trace documents, FileTraceProvider, request ID propagation, and focused security/env/runtime validation
+- [x] Add StructuredSkillPlanner with single-action schema/allowlist/authorization validation and evaluation metrics
+- [x] Harden core Skill invocation, authorization, memory roles, retries, cancellation, and production memory requirements
+- [x] Harden CLI project overwrite, static config validation, production API authentication, and exact core version pinning
 - [x] Validate generated project with Skill, Guard, and Workflow together
 - [x] Add generated project acceptance test for combined Skill, Guard, and Workflow scaffolds
 - [x] Strengthen agent validate for missing Guard and Workflow files
@@ -63,6 +68,8 @@
 
 ## Later
 
+- [ ] Define CI trusted publishing before enabling npm provenance
+- [ ] Remove deprecated ModelSkillPlanner after one minor compatibility release
 - [ ] Build Web Dev Console for trace, Guard, Planner, Skill, and Workflow debugging
 - [ ] Expand OpenAI-compatible provider diagnostics and streaming support
 - [ ] Add RAG module as a Skill/module package

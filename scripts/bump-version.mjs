@@ -15,15 +15,18 @@ if (!release) {
   fail('Missing --release. Use one of: fix, hotfix, feat, breaking.');
 }
 
-const bump = releaseToBump(release);
 const packageJson = JSON.parse(await fs.readFile(packagePaths[0], 'utf8'));
 const oldVersion = packageJson.version;
+const bump = releaseToBump(release, oldVersion);
 const nextVersion = bumpVersion(oldVersion, bump);
 
 if (!dryRun) {
   for (const packagePath of packagePaths) {
     const current = JSON.parse(await fs.readFile(packagePath, 'utf8'));
     current.version = nextVersion;
+    if (current.name === '@agent-creator/cli') {
+      current.dependencies['@agent-creator/core'] = nextVersion;
+    }
     await fs.writeFile(packagePath, `${JSON.stringify(current, null, 2)}\n`, 'utf8');
   }
   await updateCoreVersion(path.join(root, 'packages/cli/src/version.ts'), nextVersion);
@@ -41,10 +44,10 @@ function readReleaseArg(args) {
   return undefined;
 }
 
-function releaseToBump(value) {
+function releaseToBump(value, currentVersion) {
   if (value === 'fix' || value === 'hotfix') return 'patch';
   if (value === 'feat') return 'minor';
-  if (value === 'breaking') return 'major';
+  if (value === 'breaking') return currentVersion.startsWith('0.') ? 'minor' : 'major';
   fail(`Unsupported release "${value}". Use one of: fix, hotfix, feat, breaking.`);
 }
 

@@ -25,7 +25,7 @@
     "validate": "agent validate"
   },
   "dependencies": {
-    "@agent-creator/core": "^{{coreVersion}}",
+    "@agent-creator/core": "{{coreVersion}}",
     "zod": "^3.23.8"
   },
   "devDependencies": {

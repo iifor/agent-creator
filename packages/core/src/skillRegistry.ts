@@ -7,6 +7,9 @@ export class SkillRegistry implements SkillRegistryLike {
     if (this.skills.has(skill.name)) {
       throw new Error(`skill_already_registered: ${skill.name}`);
     }
+    if ((skill.retry ?? 0) > 0 && skill.idempotent !== true) {
+      throw new Error(`skill_retry_requires_idempotent: ${skill.name}`);
+    }
     this.skills.set(skill.name, skill);
   }
 
@@ -41,6 +44,10 @@ export function toolToSkill(tool: ToolDefinition): Skill {
     description: tool.description,
     inputSchema: tool.inputSchema,
     outputSchema: tool.outputSchema,
+    permission: tool.permission,
+    timeoutMs: tool.timeoutMs,
+    retry: tool.retry,
+    idempotent: tool.idempotent,
     execute: (input, context) => tool.handler(input, context),
   };
 }

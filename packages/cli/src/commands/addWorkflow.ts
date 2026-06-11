@@ -27,10 +27,10 @@ import type { Skill } from '@agent-creator/core';
 
 // Workflows are modeled as Skills so the core runtime stays small.
 // Call this workflow directly by passing:
-// metadata: { skill: '${dottedName}', skillInput: { goal: '...', steps: ['...'] } }
+// Trusted server code: agent.invokeSkill({ skill: '${dottedName}', input: { goal: '...', steps: ['...'] } })
 const inputSchema = z.object({
   goal: z.string().min(1),
-  steps: z.array(z.string().min(1)).min(1).default(['Clarify the task', 'Execute the core work', 'Summarize the result']),
+  steps: z.array(z.string().min(1)).min(1),
 });
 
 const outputSchema = z.object({

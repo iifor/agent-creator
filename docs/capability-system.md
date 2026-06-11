@@ -6,6 +6,8 @@ The CLI currently registers one project capability: `agent-core`.
 
 The loader merges the base and service file sets and replaces project, CLI, config, capability, and core version placeholders.
 
+Generated projects include `.agent-creator.json` ownership metadata. The CLI requires this marker and a matching project name before `create --force` may remove an existing target.
+
 The capability selects project shape only. Business behavior is composed from `@agent-creator/core` Skills and runtime modules.
 
 The base project includes extension registries for:

@@ -1,4 +1,5 @@
 import fs from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -44,7 +45,10 @@ describe('version scripts', () => {
     expect(runGit(dir, ['log', '-1', '--pretty=%s']).stdout.trim()).toBe('feat(cli): add commit command');
   });
 
-  it('dry-runs patch, minor, and major version bumps', () => {
+  it('keeps breaking releases pre-1.0 until the stable contract is ready', () => {
+    const currentVersion = JSON.parse(readFileSync(path.resolve('package.json'), 'utf8')).version as string;
+    const [major, minor] = currentVersion.split('.').map(Number);
+    const nextBreakingVersion = major === 0 ? `0.${minor + 1}.0` : `${major + 1}.0.0`;
     const fix = spawnSync('node', ['scripts/bump-version.mjs', '--release', 'fix', '--dry-run'], { encoding: 'utf8' });
     const feat = spawnSync('node', ['scripts/bump-version.mjs', '--release', 'feat', '--dry-run'], { encoding: 'utf8' });
     const breaking = spawnSync('node', ['scripts/bump-version.mjs', '--release', 'breaking', '--dry-run'], { encoding: 'utf8' });
@@ -54,7 +58,8 @@ describe('version scripts', () => {
     expect(feat.status).toBe(0);
     expect(feat.stdout).toContain('feat => minor');
     expect(breaking.status).toBe(0);
-    expect(breaking.stdout).toContain('breaking => major');
+    expect(breaking.stdout).toContain(`${currentVersion} -> ${nextBreakingVersion}`);
+    expect(breaking.stdout).toContain(`breaking => ${major === 0 ? 'minor' : 'major'}`);
   });
 
   it('requires a release type for build', () => {

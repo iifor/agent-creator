@@ -12,6 +12,7 @@ import {
   type MemoryProvider,
   type Planner,
   type Skill,
+  type MemoryMessage,
 } from '../src/index.js';
 
 const modelConfig = {
@@ -118,6 +119,7 @@ describe('agent builder', () => {
       'agent.completed',
     ]));
     expect(events.every((event) => event.traceId && event.at && event.message)).toBe(true);
+    expect(events.every((event) => event.requestId)).toBe(true);
     expect(events.map((event) => event.message)).toContain('Agent started.');
     expect(events.map((event) => event.message)).toContain('Plan created.');
   });
@@ -200,7 +202,7 @@ describe('agent builder', () => {
       intent: 'custom',
       message: 'last wins',
     });
-    expect(memoryCalls).toEqual(['user', 'agent']);
+    expect(memoryCalls).toEqual(['user', 'assistant']);
   });
 
   it('uses custom guard and trace modules', async () => {
@@ -230,7 +232,7 @@ describe('agent builder', () => {
       success: false,
       message: 'blocked by custom guard',
     });
-    expect(events).toEqual(['start', 'end']);
+    expect(events).toEqual(['start', 'append', 'end']);
   });
 
   it('validates runtime modules at build time', () => {
@@ -328,7 +330,7 @@ describe('agent builder', () => {
     });
 
     memory.append('s1', { role: 'user', content: '1', at: '1' });
-    memory.append('s1', { role: 'agent', content: '2', at: '2' });
+    memory.append('s1', { role: 'assistant', content: '2', at: '2' });
     memory.append('s1', { role: 'user', content: '3', at: '3' });
     expect(memory.get('s1').map((message) => message.content)).toEqual(['2', '3']);
 
@@ -356,8 +358,27 @@ describe('agent builder', () => {
     const output = await agent.run({ input: 'trace me' });
     const run = trace.get(output.traceId ?? '');
     expect(run?.events.map((event) => event.type)).toContain('plan.created');
-    expect(run?.output?.message).toBe('traced');
+    expect(run?.finalOutput).toMatchObject({ success: true, intent: 'generate_response' });
+    expect(run?.requestId).toBe(output.requestId);
+    expect(run?.formatVersion).toBe('0.1');
     expect(trace.list()).toHaveLength(1);
+  });
+
+  it('preserves caller request IDs across output, progress, and trace', async () => {
+    const events: AgentProgressEvent[] = [];
+    const trace = new InMemoryTraceProvider();
+    const agent = createAgent({ model: modelConfig })
+      .useTrace(trace)
+      .useModel({ async generate() { return { text: 'ok' }; } })
+      .build();
+    const output = await agent.run({
+      input: 'request',
+      requestId: 'request-from-edge',
+      metadata: { onProgress: (event: AgentProgressEvent) => events.push(event) },
+    });
+    expect(output.requestId).toBe('request-from-edge');
+    expect(events.every((event) => event.requestId === 'request-from-edge')).toBe(true);
+    expect(trace.get(output.traceId ?? '')?.requestId).toBe('request-from-edge');
   });
 
   it('applies skill retry and timeout policies with structured errors', async () => {
@@ -368,6 +389,7 @@ describe('agent builder', () => {
       inputSchema: z.string(),
       outputSchema: z.string(),
       retry: 1,
+      idempotent: true,
       async execute(input) {
         attempts += 1;
         if (attempts === 1) throw new Error('temporary failure');
@@ -394,6 +416,230 @@ describe('agent builder', () => {
       success: false,
       errorDetails: [{ code: 'skill_timeout' }],
     });
+  });
+
+  it('uses assistant as the only model-response memory role', () => {
+    const message: MemoryMessage = { role: 'assistant', content: 'ok', at: 'now' };
+    expect(message.role).toBe('assistant');
+    // @ts-expect-error The legacy "agent" role is intentionally unsupported.
+    const legacy: MemoryMessage = { role: 'agent', content: 'old', at: 'now' };
+    expect(legacy.role).toBe('agent');
+  });
+
+  it('does not treat metadata.skill as a direct invocation channel', async () => {
+    const calls: string[] = [];
+    const agent = createAgent({ model: modelConfig })
+      .useSkill({
+        name: 'admin.delete',
+        description: 'Administrative action',
+        inputSchema: z.unknown(),
+        outputSchema: z.string(),
+        async execute() {
+          calls.push('admin.delete');
+          return 'deleted';
+        },
+      })
+      .useSkill({
+        name: 'search',
+        description: 'Search',
+        inputSchema: z.unknown(),
+        outputSchema: z.string(),
+        async execute() {
+          calls.push('search');
+          return 'searched';
+        },
+      })
+      .useModel({
+        async generate() {
+          return { text: 'normal response' };
+        },
+      })
+      .build();
+
+    await expect(agent.run({
+      input: 'hello',
+      metadata: { skill: 'admin.delete', skillInput: { all: true } },
+    })).resolves.toMatchObject({ message: 'normal response' });
+    expect(calls).toEqual([]);
+  });
+
+  it('enforces default skill permissions for planner and direct invocation', async () => {
+    function permissionSkill(name: string, permission: Skill['permission']): Skill<string, string> {
+      return {
+        name,
+        description: name,
+        permission,
+        inputSchema: z.string(),
+        outputSchema: z.string(),
+        async execute(input) {
+          return input;
+        },
+      };
+    }
+
+    const publicAgent = createAgent({ model: modelConfig })
+      .useSkill(permissionSkill('public.echo', 'public'))
+      .build();
+    await expect(publicAgent.invokeSkill({ skill: 'public.echo', input: 'ok' })).resolves.toMatchObject({
+      success: true,
+      data: 'ok',
+    });
+
+    const privateAgent = createAgent({ model: modelConfig })
+      .useSkill(permissionSkill('private.echo', 'user_private'))
+      .build();
+    await expect(privateAgent.invokeSkill({ skill: 'private.echo', input: 'no user' })).resolves.toMatchObject({
+      success: false,
+      errorDetails: [{ code: 'skill_forbidden' }],
+    });
+    await expect(privateAgent.invokeSkill({
+      skill: 'private.echo',
+      input: 'trusted',
+      userId: 'user-1',
+    })).resolves.toMatchObject({ success: true, data: 'trusted' });
+
+    const externalSkill = permissionSkill('external.send', 'external_api');
+    const externalAgent = createAgent({ model: modelConfig }).useSkill(externalSkill).build();
+    await expect(externalAgent.invokeSkill({ skill: 'external.send', input: 'blocked' })).resolves.toMatchObject({
+      success: false,
+      errorDetails: [{ code: 'skill_forbidden' }],
+    });
+
+    const authorizedAgent = createAgent({ model: modelConfig })
+      .useSkill(externalSkill)
+      .useSkillAuthorizer({
+        authorize({ skill }) {
+          return { allowed: skill.name === 'external.send' };
+        },
+      })
+      .build();
+    await expect(authorizedAgent.invokeSkill({ skill: 'external.send', input: 'allowed' })).resolves.toMatchObject({
+      success: true,
+      data: 'allowed',
+    });
+
+    const privateWithCustomAuthorizer = createAgent({ model: modelConfig })
+      .useSkill(permissionSkill('private.custom', 'user_private'))
+      .useSkillAuthorizer({ authorize: () => ({ allowed: true }) })
+      .build();
+    await expect(privateWithCustomAuthorizer.invokeSkill({
+      skill: 'private.custom',
+      input: 'still blocked',
+    })).resolves.toMatchObject({
+      success: false,
+      errorDetails: [{ code: 'skill_forbidden' }],
+    });
+  });
+
+  it('prevents custom planners from bypassing skill authorization', async () => {
+    const agent = createAgent({ model: modelConfig })
+      .useSkill({
+        name: 'external.send',
+        description: 'Send externally',
+        permission: 'external_api',
+        inputSchema: z.string(),
+        outputSchema: z.string(),
+        async execute(input) {
+          return input;
+        },
+      })
+      .usePlanner({
+        plan: () => ({ goal: 'bypass', steps: [{ type: 'skill', skill: 'external.send', input: 'payload' }] }),
+      })
+      .build();
+
+    await expect(agent.run({ input: 'send it' })).resolves.toMatchObject({
+      success: false,
+      errorDetails: [{ code: 'skill_forbidden' }],
+    });
+  });
+
+  it('requires idempotency before enabling retries', () => {
+    expect(() => createAgent({ model: modelConfig }).useSkill({
+      name: 'unsafe.retry',
+      description: 'Unsafe retry',
+      inputSchema: z.string(),
+      outputSchema: z.string(),
+      retry: 1,
+      async execute(input) {
+        return input;
+      },
+    })).toThrow('skill_retry_requires_idempotent');
+  });
+
+  it('passes stable execution metadata across retries', async () => {
+    const contexts: Array<{ executionId: string; attempt: number; idempotencyKey: string }> = [];
+    const agent = createAgent({ model: modelConfig })
+      .useSkill({
+        name: 'safe.retry',
+        description: 'Safe retry',
+        inputSchema: z.string(),
+        outputSchema: z.string(),
+        retry: 1,
+        idempotent: true,
+        async execute(input, context) {
+          contexts.push({
+            executionId: context.executionId,
+            attempt: context.attempt,
+            idempotencyKey: context.idempotencyKey,
+          });
+          if (context.attempt === 1) throw new Error('retry');
+          return input;
+        },
+      })
+      .build();
+
+    await expect(agent.invokeSkill({
+      skill: 'safe.retry',
+      input: 'ok',
+      idempotencyKey: 'request-123',
+    })).resolves.toMatchObject({ success: true, data: 'ok' });
+    expect(contexts).toEqual([
+      { executionId: contexts[0]?.executionId, attempt: 1, idempotencyKey: 'request-123' },
+      { executionId: contexts[0]?.executionId, attempt: 2, idempotencyKey: 'request-123' },
+    ]);
+  });
+
+  it('aborts the active skill attempt on timeout', async () => {
+    let aborted = false;
+    const agent = createAgent({ model: modelConfig })
+      .useSkill({
+        name: 'abort.wait',
+        description: 'Wait for abort',
+        inputSchema: z.string(),
+        outputSchema: z.string(),
+        timeoutMs: 1,
+        async execute(_input, context) {
+          return new Promise<string>((_resolve, reject) => {
+            context.signal.addEventListener('abort', () => {
+              aborted = true;
+              reject(new Error('aborted'));
+            });
+          });
+        },
+      })
+      .build();
+
+    await expect(agent.invokeSkill({ skill: 'abort.wait', input: 'wait' })).resolves.toMatchObject({
+      success: false,
+      errorDetails: [{ code: 'skill_timeout' }],
+    });
+    expect(aborted).toBe(true);
+  });
+
+  it('requires an explicit memory provider in production mode', () => {
+    expect(() => createAgent({ model: modelConfig, runtimeMode: 'production' }).build())
+      .toThrow('production_memory_required');
+    expect(() => createAgent({ model: modelConfig, runtimeMode: 'development' }).build()).not.toThrow();
+    expect(() => createAgent({ model: modelConfig, runtimeMode: 'production' })
+      .useMemory({
+        append() {},
+        get() {
+          return [];
+        },
+        clear() {},
+      })
+      .build()).not.toThrow();
   });
 
   it('lets skills call the configured webhook service', async () => {

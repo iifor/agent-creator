@@ -13,6 +13,12 @@ describe('create command', () => {
     try {
       await createCommand('demo-agent', { capability: 'agent-core', packageManager: 'npm' });
       await expect(fs.access(path.join(dir, 'demo-agent', 'agent.config.ts'))).resolves.toBeUndefined();
+      const marker = JSON.parse(await fs.readFile(path.join(dir, 'demo-agent', '.agent-creator.json'), 'utf8'));
+      expect(marker).toMatchObject({
+        name: 'demo-agent',
+        capability: 'agent-core',
+        generatedBy: 'agent-creator',
+      });
       await expect(fs.access(path.join(dir, 'demo-agent', 'src/cli.ts'))).resolves.toBeUndefined();
       await expect(fs.access(path.join(dir, 'demo-agent', 'src/env.ts'))).resolves.toBeUndefined();
       await expect(fs.access(path.join(dir, 'demo-agent', '.env.example'))).resolves.toBeUndefined();
@@ -59,9 +65,13 @@ describe('create command', () => {
       const client = await fs.readFile(path.join(dir, 'demo-agent', 'src/client.ts'), 'utf8');
       expect(client).toContain('runAgentHttp');
       expect(client).toContain('streamAgentHttp');
+      expect(client).toContain('requestId?: string');
+      expect(client).toContain("'x-request-id'");
       const index = await fs.readFile(path.join(dir, 'demo-agent', 'src/index.ts'), 'utf8');
       expect(index).toContain('webhook: config.webhook');
       expect(index).toContain('builder.useGuard(guard)');
+      expect(index).toContain('FileTraceProvider');
+      expect(index).toContain('new FileTraceProvider()');
       const generatedPackageJson = JSON.parse(await fs.readFile(path.join(dir, 'demo-agent', 'package.json'), 'utf8')) as {
         version: string;
         dependencies: Record<string, string>;
@@ -72,6 +82,7 @@ describe('create command', () => {
       expect(generatedPackageJson.dependencies).toHaveProperty('next');
       expect(generatedPackageJson.dependencies).toHaveProperty('antd');
       expect(generatedPackageJson.dependencies).toHaveProperty('@agent-creator/core');
+      expect(generatedPackageJson.dependencies['@agent-creator/core']).toBe(CLI_VERSION);
       expect(generatedPackageJson.scripts.dev).toBe('next dev');
       expect(generatedPackageJson.scripts['dev:agent']).toBe('tsx src/cli.ts');
       expect(generatedPackageJson.exports['./client'].import).toBe('./dist/src/client.js');
@@ -79,11 +90,16 @@ describe('create command', () => {
       expect(cli).toContain('onProgress');
       const route = await fs.readFile(path.join(dir, 'demo-agent', 'src/app/api/agent/route.ts'), 'utf8');
       expect(route).toContain('requireAgentApiKey');
+      expect(route).toContain("'x-request-id'");
+      expect(route).toContain("'x-request-id': output.requestId ?? requestId");
       const streamRoute = await fs.readFile(path.join(dir, 'demo-agent', 'src/app/api/agent/stream/route.ts'), 'utf8');
       expect(streamRoute).toContain('requireAgentApiKey');
+      expect(streamRoute).toContain("'x-request-id'");
       const auth = await fs.readFile(path.join(dir, 'demo-agent', 'src/app/api/agent/auth.ts'), 'utf8');
       expect(auth).toContain('process.env.AGENT_API_KEY');
-      expect(auth).toContain('if (!expected) return undefined');
+      expect(auth).toContain("process.env.NODE_ENV !== 'production'");
+      expect(auth).toContain('AGENT_API_KEY is required in production');
+      expect(auth).toContain('status: 503');
       expect(auth).toContain('authorization');
       expect(auth).toContain('if (actual === expected) return undefined');
       expect(auth).toContain('status: 401');
@@ -147,5 +163,46 @@ describe('create command', () => {
 
   it('rejects unsupported create modes', async () => {
     await expect(createCommand('demo-agent', { capability: 'agent-core', packageManager: 'npm', mode: 'mobile' })).rejects.toThrow('Unsupported create mode');
+  });
+
+  it('rejects unsafe project names and paths', async () => {
+    for (const name of ['.', '..', '../outside', '/absolute', 'nested/project', 'Uppercase', '@scope/name', '-leading']) {
+      await expect(createCommand(name, { capability: 'agent-core', packageManager: 'npm' }))
+        .rejects.toThrow('Invalid project name');
+    }
+  });
+
+  it('only force-overwrites directories owned by agent-creator', async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'agent-creator-'));
+    const previous = process.cwd();
+    process.chdir(dir);
+    try {
+      await fs.mkdir('ordinary');
+      await fs.writeFile(path.join('ordinary', 'keep.txt'), 'keep', 'utf8');
+      await expect(createCommand('ordinary', {
+        capability: 'agent-core',
+        packageManager: 'npm',
+        force: true,
+      })).rejects.toThrow('ownership marker');
+      await expect(fs.readFile(path.join('ordinary', 'keep.txt'), 'utf8')).resolves.toBe('keep');
+
+      await createCommand('generated', { capability: 'agent-core', packageManager: 'npm' });
+      await fs.writeFile(path.join('generated', 'stale.txt'), 'stale', 'utf8');
+      await createCommand('generated', { capability: 'agent-core', packageManager: 'npm', force: true });
+      await expect(fs.access(path.join('generated', 'stale.txt'))).rejects.toThrow();
+
+      await createCommand('mismatch', { capability: 'agent-core', packageManager: 'npm' });
+      const markerPath = path.join('mismatch', '.agent-creator.json');
+      const marker = JSON.parse(await fs.readFile(markerPath, 'utf8'));
+      marker.name = 'different';
+      await fs.writeFile(markerPath, JSON.stringify(marker), 'utf8');
+      await expect(createCommand('mismatch', {
+        capability: 'agent-core',
+        packageManager: 'npm',
+        force: true,
+      })).rejects.toThrow('does not match');
+    } finally {
+      process.chdir(previous);
+    }
   });
 });

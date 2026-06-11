@@ -48,6 +48,10 @@ agent create demo-service --mode service
 agent add skill calendar
 agent add tool calendar # deprecated compatibility alias
 agent validate
+agent validate security
+agent validate env
+agent validate runtime
+agent trace --latest
 agent version
 ```
 

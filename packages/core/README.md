@@ -2,6 +2,8 @@
 
 Composable Agent runtime for skills, memory, planning, execution, guards, traces, and OpenAI-compatible models.
 
+> Full usage guide: [docs/core-usage.md](docs/core-usage.md) covers `createAgent`, `invokeSkill`, authorization, MemoryProvider, Guard, TraceProvider, Webhook, and custom Planner.
+
 ```ts
 import { createAgent } from '@agent-creator/core';
 
@@ -27,12 +29,13 @@ await agent.run({ input: 'Run my task', sessionId: 'session-1' });
 
 `@agent-creator/core` includes lightweight defaults that can be replaced one at a time:
 
-- `InMemoryProvider`: process-local session memory with optional message/session limits and TTL.
+- `InMemoryProvider`: development-only process memory with optional message/session limits and TTL.
 - `BasicGuard` / `DefaultGuard`: configurable max input length, blocklist, and allowlist checks.
-- `DefaultPlanner`: explicit skill routing via `metadata.skill`, single-skill auto routing, and `skill.name:` prefix routing.
-- `ModelSkillPlanner`: optional model-driven skill selection that falls back to normal model responses.
-- `DefaultExecutor`: validates skill I/O, applies optional skill `timeoutMs` and `retry`, and emits progress events.
-- `ConsoleTraceProvider` and `InMemoryTraceProvider`: built-in tracing for development and tests.
+- `DefaultPlanner`: single-skill auto routing and `skill.name:` prefix routing.
+- `StructuredSkillPlanner`: optional single-action model routing with JSON parsing, Skill allowlist, Zod input validation, and Executor authorization.
+- `ModelSkillPlanner`: deprecated legacy model routing; retained for one minor release.
+- `DefaultExecutor`: authorizes every Skill, validates I/O, applies cancellable timeout and idempotent retry policies, and emits progress events.
+- `FileTraceProvider`, `ConsoleTraceProvider`, and `InMemoryTraceProvider`: versioned, redacted tracing for development and tests.
 - `HttpWebhookService` / `NoopWebhookService`: optional webhook notifications available from planners and skills.
 
 Skills can declare optional execution metadata:
@@ -46,6 +49,7 @@ const skill = {
   permission: 'user_private',
   timeoutMs: 5000,
   retry: 1,
+  idempotent: true,
   tags: ['calendar'],
   async execute(input, context) {
     return searchCalendar(input, context.userId);
@@ -53,16 +57,31 @@ const skill = {
 };
 ```
 
-`metadata.skill` and `metadata.skillInput` are stable default-planner conventions for directly invoking a skill:
+Direct Skill execution is a server-side operation. Use `invokeSkill()` rather than accepting a Skill name through client metadata:
 
 ```ts
-await agent.run({
-  input: 'Search calendar',
-  metadata: {
-    skill: 'calendar.search',
-    skillInput: { query: 'today' },
-  },
+await agent.invokeSkill({
+  skill: 'calendar.search',
+  input: { query: 'today' },
+  userId: trustedUser.id,
+  idempotencyKey: request.id,
 });
+```
+
+`public` Skills are allowed by default, `user_private` Skills require a trusted `userId`, and `external_api` Skills require a custom `SkillAuthorizer`.
+
+Production mode refuses the default process-local Memory:
+
+```ts
+createAgent({ model, runtimeMode: 'production' })
+  .useMemory(persistentMemory)
+  .build();
+```
+
+Use `requestId` to correlate service requests, progress events, output, and Trace:
+
+```ts
+await agent.run({ input: 'Help', requestId: 'request-from-edge' });
 ```
 
 OpenAI-compatible models also support optional generation parameters:

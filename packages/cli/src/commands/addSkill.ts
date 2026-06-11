@@ -29,7 +29,7 @@ function skillFile(symbolName: string, dottedName: string): string {
 import type { Skill } from '@agent-creator/core';
 
 // Call this skill directly by passing:
-// metadata: { skill: '${dottedName}', skillInput: { query: '...' } }
+// Trusted server code: agent.invokeSkill({ skill: '${dottedName}', input: { query: '...' } })
 const inputSchema = z.object({
   query: z.string().min(1).describe('The user or workflow request this skill should handle.'),
   options: z.record(z.string(), z.unknown()).optional().describe('Domain-specific options for this skill.'),
@@ -67,10 +67,11 @@ function webhookSkillFile(symbolName: string): string {
   return `import { createWebhookSkill } from '@agent-creator/core';
 
 // Call this skill directly by passing:
-// metadata: {
+// Trusted server code:
+// agent.invokeSkill({
 //   skill: 'webhook',
-//   skillInput: { event: 'build.completed', message: 'Build finished' }
-// }
+//   input: { event: 'build.completed', message: 'Build finished' }
+// })
 export const ${symbolName} = createWebhookSkill({
   url: process.env.WEBHOOK_URL ?? '',
 });

@@ -38,7 +38,9 @@ const output = await runAgentHttp({
 
 After publishing or linking this generated package, consumers can import the client as `{{projectName}}/client`.
 
-See `docs/api.md` for the full HTTP contract, streaming format, optional `AGENT_API_KEY` auth, and production notes.
+See `docs/api.md` for the full HTTP contract, streaming format, production authentication, and runtime notes.
+
+Development runs write redacted Trace documents to `.agent-traces`. Inspect them with `agent trace --latest`.
 
 ## Configure The Agent
 
@@ -61,7 +63,7 @@ export OPENAI_API_KEY=your-key
 export LLM_MODEL=gpt-4o-mini
 ```
 
-The generated `.env.example` contains the same variables. Service mode also supports optional `AGENT_API_KEY` bearer-token authentication.
+The generated `.env.example` contains the same variables. Service mode requires `AGENT_API_KEY` bearer-token authentication in production.
 
 ## Run
 
@@ -132,20 +134,27 @@ Webhook is available as a built-in optional Skill adapter:
 agent add skill webhook
 ```
 
-Then set `WEBHOOK_URL` in `.env`. You can call it directly with `metadata.skill = 'webhook'`, or configure `createAgent({ webhook: { url } })` in `src/index.ts` and call `context.webhook?.notify(...)` from your own Skills.
+Then set `WEBHOOK_URL` in `.env`. The webhook Skill declares `external_api`, so register a server-side `SkillAuthorizer` before invoking it. Developer-controlled Skills can also call `context.webhook?.notify(...)`.
 
-To call a specific Skill directly through the default planner, pass metadata:
+To call a specific Skill from trusted server code, use the generated `invokeSkill` helper:
 
 ```ts
-await runAgent({
-  input: 'Run calendar search',
-  metadata: {
-    skill: 'calendar',
-    skillInput: { query: 'today' },
-  },
+await invokeSkill({
+  skill: 'calendar',
+  input: { query: 'today' },
 });
 ```
 
+`runAgent()` ignores `metadata.skill`; HTTP request bodies cannot select arbitrary Skills.
+
 ## Production Notes
 
-The default memory provider is process-local in-memory storage. It is useful for development, but production deployments should replace it with a persistent `MemoryProvider`.
+The default memory provider is process-local in-memory storage. Production mode refuses to build the Agent until `src/index.ts` registers an explicit persistent `MemoryProvider`.
+
+Before deployment, run:
+
+```bash
+agent validate security
+agent validate env
+agent validate runtime
+```

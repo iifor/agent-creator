@@ -1,8 +1,17 @@
 {
   "name": "agent-creator-workspace",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "private": false,
   "description": "Workspace for the Agent Creator CLI and composable Agent runtime.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iifor/agent-creator.git"
+  },
+  "bugs": {
+    "url": "https://github.com/iifor/agent-creator/issues"
+  },
+  "homepage": "https://github.com/iifor/agent-creator#readme",
   "workspaces": [
     "packages/*"
   ],

@@ -4,6 +4,7 @@ export interface AgentHttpOptions {
   baseUrl: string;
   input: string;
   sessionId?: string;
+  requestId?: string;
   apiKey?: string;
   fetch?: typeof globalThis.fetch;
 }
@@ -17,7 +18,7 @@ export async function runAgentHttp(options: AgentHttpOptions): Promise<AgentOutp
   if (!fetchImpl) throw new Error('Global fetch is unavailable. Node.js 18 or newer is required.');
   const response = await fetchImpl(`${normalizeBaseUrl(options.baseUrl)}/api/agent`, {
     method: 'POST',
-    headers: requestHeaders(options.apiKey),
+    headers: requestHeaders(options.apiKey, options.requestId),
     body: JSON.stringify({ input: options.input, sessionId: options.sessionId }),
   });
   if (!response.ok) throw new Error(`agent_request_failed: ${response.status} ${await response.text()}`);
@@ -29,7 +30,7 @@ export async function* streamAgentHttp(options: AgentHttpOptions): AsyncGenerato
   if (!fetchImpl) throw new Error('Global fetch is unavailable. Node.js 18 or newer is required.');
   const response = await fetchImpl(`${normalizeBaseUrl(options.baseUrl)}/api/agent/stream`, {
     method: 'POST',
-    headers: requestHeaders(options.apiKey),
+    headers: requestHeaders(options.apiKey, options.requestId),
     body: JSON.stringify({ input: options.input, sessionId: options.sessionId }),
   });
   if (!response.ok) throw new Error(`agent_stream_failed: ${response.status} ${await response.text()}`);
@@ -55,10 +56,11 @@ export async function* streamAgentHttp(options: AgentHttpOptions): AsyncGenerato
   if (finalEvent) yield finalEvent;
 }
 
-function requestHeaders(apiKey?: string): HeadersInit {
+function requestHeaders(apiKey?: string, requestId?: string): Record<string, string> {
   return {
     'content-type': 'application/json',
     ...(apiKey ? { authorization: `Bearer ${apiKey}` } : {}),
+    ...(requestId ? { 'x-request-id': requestId } : {}),
   };
 }
 
@@ -70,9 +72,9 @@ function normalizeBaseUrl(baseUrl: string): string {
 
 function parseStreamLine(line: string): AgentStreamEvent | undefined {
   if (!line.trim()) return undefined;
-  const event = JSON.parse(line) as AgentStreamEvent;
+  const event = JSON.parse(line) as { type?: unknown };
   if (event.type !== 'progress' && event.type !== 'final') {
-    throw new Error(`agent_stream_invalid_event: ${event.type}`);
+    throw new Error(`agent_stream_invalid_event: ${String(event.type)}`);
   }
-  return event;
+  return event as AgentStreamEvent;
 }

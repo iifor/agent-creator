@@ -35,9 +35,17 @@ export async function traceCommand(options: TraceOptions): Promise<void> {
   }
 
   const content = await readText(path.join(directory, selected));
-  const trace = JSON.parse(content) as { traceId: string; finalOutput?: { intent?: string; success?: boolean }; latencyMs?: number };
+  const trace = JSON.parse(content) as {
+    formatVersion?: string;
+    traceId: string;
+    requestId?: string;
+    finalOutput?: { intent?: string; success?: boolean };
+    latencyMs?: number;
+  };
   if (options.latest || !options.id) {
-    logger.info(`${trace.traceId}  ${trace.finalOutput?.intent ?? 'unknown'}  ${trace.finalOutput?.success ? 'success' : 'failed'}  ${trace.latencyMs ?? 0}ms`);
+    logger.info(
+      `${trace.traceId}  request=${trace.requestId ?? 'unknown'}  ${trace.finalOutput?.intent ?? 'unknown'}  ${trace.finalOutput?.success ? 'success' : 'failed'}  ${trace.latencyMs ?? 0}ms  format=${trace.formatVersion ?? 'legacy'}`,
+    );
     logger.info(content);
     return;
   }

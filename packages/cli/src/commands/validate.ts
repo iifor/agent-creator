@@ -1,6 +1,7 @@
 import path from 'node:path';
 import fs from 'node:fs/promises';
 import os from 'node:os';
+import { spawnSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import ts from 'typescript';
 import { agentConfigSchema, type AgentConfigShape } from '../schemas/agentConfig.schema.js';
@@ -14,7 +15,16 @@ interface ValidationIssue {
   fix: string;
 }
 
-export async function validateCommand(): Promise<void> {
+type ValidationCheck = 'structure' | 'security' | 'env' | 'runtime';
+
+export async function validateCommand(check: ValidationCheck | string = 'structure'): Promise<void> {
+  if (!['structure', 'security', 'env', 'runtime'].includes(check)) {
+    throw new Error(`Unsupported validation check "${check}". Use structure, security, env, or runtime.`);
+  }
+  if (check !== 'structure') {
+    await runFocusedValidation(check as Exclude<ValidationCheck, 'structure'>);
+    return;
+  }
   const cwd = process.cwd();
   const issues: ValidationIssue[] = [];
   const required = [
@@ -136,6 +146,179 @@ export async function validateCommand(): Promise<void> {
   logger.success('Agent project validation passed.');
 }
 
+async function runFocusedValidation(check: Exclude<ValidationCheck, 'structure'>): Promise<void> {
+  const cwd = process.cwd();
+  const issues: ValidationIssue[] = [];
+  const configPath = path.join(cwd, 'agent.config.ts');
+  if (!(await pathExists(configPath))) {
+    issues.push({
+      location: 'agent.config.ts',
+      reason: 'Required file is missing.',
+      fix: 'Run validation from a generated Agent project root.',
+    });
+  } else {
+    const configResult = await loadAndValidateConfig(configPath);
+    if (!configResult.config) {
+      issues.push(...configResult.issues);
+    } else if (check === 'security') {
+      await validateSecurity(cwd, configResult.config, issues);
+    } else if (check === 'env') {
+      validateEnvironment(configResult.config, issues);
+    } else {
+      await validateRuntime(cwd, issues);
+    }
+  }
+  reportValidation(check, issues);
+}
+
+async function validateSecurity(cwd: string, config: AgentConfigShape, issues: ValidationIssue[]): Promise<void> {
+  const indexPath = path.join(cwd, 'src/index.ts');
+  const indexText = await pathExists(indexPath) ? await readText(indexPath) : '';
+  if (!indexText.includes("runtimeMode: process.env.NODE_ENV === 'production'")) {
+    issues.push({
+      location: 'src/index.ts',
+      reason: 'Runtime mode is not derived from NODE_ENV.',
+      fix: 'Pass runtimeMode to createAgent and select production when NODE_ENV=production.',
+    });
+  }
+  if (!hasMethodCall(indexText, 'useMemory')) {
+    issues.push({
+      location: 'src/index.ts',
+      reason: 'No explicit persistent MemoryProvider is registered for production.',
+      fix: 'Register a persistent MemoryProvider with builder.useMemory(...).',
+    });
+  }
+
+  const skillSources = await readDirectorySources(path.join(cwd, 'src/skills'));
+  const hasExternalSkill = skillSources.some((source) =>
+    /permission:\s*['"]external_api['"]/.test(source) || source.includes('createWebhookSkill('));
+  if (hasExternalSkill && !hasMethodCall(indexText, 'useSkillAuthorizer')) {
+    issues.push({
+      location: 'src/index.ts',
+      reason: 'An external_api Skill is registered without an application SkillAuthorizer.',
+      fix: 'Register builder.useSkillAuthorizer(...) with an explicit allow policy.',
+    });
+  }
+
+  if (config.service.enabled) {
+    const authPath = path.join(cwd, 'src/app/api/agent/auth.ts');
+    const authText = await pathExists(authPath) ? await readText(authPath) : '';
+    if (
+      !authText.includes('AGENT_API_KEY')
+      || !authText.includes("process.env.NODE_ENV !== 'production'")
+      || !authText.includes('status: 503')
+    ) {
+      issues.push({
+        location: 'src/app/api/agent/auth.ts',
+        reason: 'Production API authentication is not fail-closed.',
+        fix: 'Restore the generated production AGENT_API_KEY enforcement.',
+      });
+    }
+  }
+}
+
+function hasMethodCall(source: string, methodName: string): boolean {
+  const sourceFile = ts.createSourceFile('src/index.ts', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  let found = false;
+  const visit = (node: ts.Node): void => {
+    if (
+      ts.isCallExpression(node)
+      && ts.isPropertyAccessExpression(node.expression)
+      && node.expression.name.text === methodName
+    ) {
+      found = true;
+      return;
+    }
+    if (!found) ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+  return found;
+}
+
+function validateEnvironment(config: AgentConfigShape, issues: ValidationIssue[]): void {
+  if (!config.model.baseUrl.trim()) {
+    issues.push({
+      location: 'LLM_BASE_URL',
+      reason: 'Model base URL is not configured.',
+      fix: 'Set LLM_BASE_URL or a static model.baseUrl.',
+    });
+  }
+  if (!config.model.apiKey.trim()) {
+    issues.push({
+      location: 'OPENAI_API_KEY',
+      reason: 'Model API key is not configured.',
+      fix: 'Set OPENAI_API_KEY or a static model.apiKey.',
+    });
+  }
+  if (config.service.enabled && !process.env.AGENT_API_KEY?.trim()) {
+    issues.push({
+      location: 'AGENT_API_KEY',
+      reason: 'Production service authentication key is not configured.',
+      fix: 'Set AGENT_API_KEY to a strong deployment secret.',
+    });
+  }
+}
+
+async function validateRuntime(cwd: string, issues: ValidationIssue[]): Promise<void> {
+  const tsxCli = path.join(cwd, 'node_modules', 'tsx', 'dist', 'cli.mjs');
+  if (!(await pathExists(tsxCli))) {
+    issues.push({
+      location: 'node_modules/tsx',
+      reason: 'Runtime validation requires installed project dependencies.',
+      fix: 'Install dependencies, then rerun agent validate runtime.',
+    });
+    return;
+  }
+
+  const scriptPath = path.join(await fs.mkdtemp(path.join(os.tmpdir(), 'agent-runtime-check-')), 'check.mjs');
+  const entryUrl = pathToFileURL(path.join(cwd, 'src/index.ts')).href;
+  await fs.writeFile(scriptPath, `import { getAgent } from ${JSON.stringify(entryUrl)};\ngetAgent();\n`, 'utf8');
+  try {
+    const result = spawnSync(process.execPath, ['--import', 'tsx', scriptPath], {
+      cwd,
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        NODE_ENV: 'development',
+        LLM_BASE_URL: process.env.LLM_BASE_URL || 'https://runtime-validation.invalid/v1',
+        OPENAI_API_KEY: process.env.OPENAI_API_KEY || 'runtime-validation-key',
+      },
+    });
+    if (result.status !== 0) {
+      issues.push({
+        location: 'src/index.ts',
+        reason: `Agent runtime build failed: ${(result.stderr || result.stdout).trim()}`,
+        fix: 'Repair generated module registration or runtime configuration.',
+      });
+    }
+  } finally {
+    await fs.rm(path.dirname(scriptPath), { recursive: true, force: true });
+  }
+}
+
+function reportValidation(check: ValidationCheck, issues: ValidationIssue[]): void {
+  if (issues.length > 0) {
+    logger.error(`Agent project ${check} validation failed:`);
+    for (const issue of issues) {
+      logger.error(`- ${issue.location}: ${issue.reason} Fix: ${issue.fix}`);
+    }
+    process.exitCode = 1;
+    return;
+  }
+  logger.success(`Agent project ${check} validation passed.`);
+}
+
+async function readDirectorySources(directory: string): Promise<string[]> {
+  if (!(await pathExists(directory))) return [];
+  const entries = await fs.readdir(directory, { withFileTypes: true });
+  const sources = await Promise.all(entries.map(async (entry) => {
+    const entryPath = path.join(directory, entry.name);
+    if (entry.isDirectory()) return readDirectorySources(entryPath);
+    return entry.name.endsWith('.ts') ? [await readText(entryPath)] : [];
+  }));
+  return sources.flat();
+}
+
 async function validateServiceProject(cwd: string, issues: ValidationIssue[]): Promise<void> {
   const required = [
     'src/app/page.tsx',
@@ -238,24 +421,91 @@ async function loadAndValidateConfig(configPath: string): Promise<{ config?: Age
 
 async function loadConfig(configPath: string): Promise<unknown> {
   const source = await readText(configPath);
-  const transpiled = ts.transpileModule(source, {
-    compilerOptions: {
-      target: ts.ScriptTarget.ES2022,
-      module: ts.ModuleKind.ES2022,
-      moduleResolution: ts.ModuleResolutionKind.NodeNext,
-      importsNotUsedAsValues: ts.ImportsNotUsedAsValues.Remove,
-    },
-    fileName: configPath,
-  });
+  const sourceFile = ts.createSourceFile(configPath, source, ts.ScriptTarget.ES2022, true, ts.ScriptKind.TS);
+  const variables = new Map<string, ts.Expression>();
+  let defaultExport: ts.Expression | undefined;
 
-  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'agent-config-'));
-  const tempFile = path.join(tempDir, 'agent.config.mjs');
-  await fs.writeFile(tempFile, transpiled.outputText, 'utf8');
-
-  try {
-    const imported = await import(`${pathToFileURL(tempFile).href}?t=${Date.now()}`);
-    return imported.default;
-  } finally {
-    await fs.rm(tempDir, { recursive: true, force: true });
+  for (const statement of sourceFile.statements) {
+    if (ts.isImportDeclaration(statement)) {
+      if (!statement.importClause?.isTypeOnly) throw unsupportedStaticConfig(statement);
+    } else if (ts.isVariableStatement(statement)) {
+      for (const declaration of statement.declarationList.declarations) {
+        if (!ts.isIdentifier(declaration.name) || !declaration.initializer) throw unsupportedStaticConfig(declaration);
+        variables.set(declaration.name.text, declaration.initializer);
+      }
+    } else if (ts.isExportAssignment(statement) && !statement.isExportEquals) {
+      defaultExport = statement.expression;
+    } else if (!ts.isInterfaceDeclaration(statement) && !ts.isTypeAliasDeclaration(statement) && !ts.isEmptyStatement(statement)) {
+      throw unsupportedStaticConfig(statement);
+    }
   }
+  if (!defaultExport) throw new Error('Static config requires a default export.');
+  for (const initializer of variables.values()) evaluateStaticExpression(initializer, variables);
+  return evaluateStaticExpression(defaultExport, variables);
+}
+
+function evaluateStaticExpression(expression: ts.Expression, variables: Map<string, ts.Expression>): unknown {
+  if (ts.isParenthesizedExpression(expression)) return evaluateStaticExpression(expression.expression, variables);
+  if (ts.isAsExpression(expression) || ts.isTypeAssertionExpression(expression) || ts.isSatisfiesExpression(expression)) {
+    return evaluateStaticExpression(expression.expression, variables);
+  }
+  if (ts.isStringLiteral(expression) || ts.isNoSubstitutionTemplateLiteral(expression)) return expression.text;
+  if (ts.isNumericLiteral(expression)) return Number(expression.text);
+  if (expression.kind === ts.SyntaxKind.TrueKeyword) return true;
+  if (expression.kind === ts.SyntaxKind.FalseKeyword) return false;
+  if (expression.kind === ts.SyntaxKind.NullKeyword) return null;
+  if (ts.isIdentifier(expression)) {
+    if (expression.text === 'undefined') return undefined;
+    const initializer = variables.get(expression.text);
+    if (!initializer) throw unsupportedStaticConfig(expression);
+    return evaluateStaticExpression(initializer, variables);
+  }
+  if (ts.isPrefixUnaryExpression(expression) && expression.operator === ts.SyntaxKind.MinusToken) {
+    const value = evaluateStaticExpression(expression.operand, variables);
+    if (typeof value === 'number') return -value;
+    throw unsupportedStaticConfig(expression);
+  }
+  if (ts.isArrayLiteralExpression(expression)) {
+    return expression.elements.map((element) => {
+      if (ts.isSpreadElement(element)) throw unsupportedStaticConfig(element);
+      return evaluateStaticExpression(element, variables);
+    });
+  }
+  if (ts.isObjectLiteralExpression(expression)) {
+    const result: Record<string, unknown> = {};
+    for (const property of expression.properties) {
+      if (!ts.isPropertyAssignment(property) || ts.isComputedPropertyName(property.name)) {
+        throw unsupportedStaticConfig(property);
+      }
+      const name = propertyName(property.name);
+      result[name] = evaluateStaticExpression(property.initializer, variables);
+    }
+    return result;
+  }
+  if (ts.isBinaryExpression(expression) && expression.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken) {
+    const left = evaluateStaticExpression(expression.left, variables);
+    return left ?? evaluateStaticExpression(expression.right, variables);
+  }
+  if (isProcessEnvAccess(expression)) {
+    return process.env[expression.name.text];
+  }
+  throw unsupportedStaticConfig(expression);
+}
+
+function isProcessEnvAccess(expression: ts.Expression): expression is ts.PropertyAccessExpression & { name: ts.Identifier } {
+  return ts.isPropertyAccessExpression(expression)
+    && ts.isIdentifier(expression.name)
+    && ts.isPropertyAccessExpression(expression.expression)
+    && ts.isIdentifier(expression.expression.expression)
+    && expression.expression.expression.text === 'process'
+    && expression.expression.name.text === 'env';
+}
+
+function propertyName(name: ts.PropertyName): string {
+  if (ts.isIdentifier(name) || ts.isStringLiteral(name) || ts.isNumericLiteral(name)) return name.text;
+  throw unsupportedStaticConfig(name);
+}
+
+function unsupportedStaticConfig(node: ts.Node): Error {
+  return new Error(`Unsupported executable or dynamic config syntax: ${node.getText()}. Use literals or process.env.NAME ?? fallback.`);
 }

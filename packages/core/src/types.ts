@@ -17,6 +17,7 @@ export interface OpenAICompatibleModelConfig {
 
 export interface CreateAgentOptions {
   model: OpenAICompatibleModelConfig;
+  runtimeMode?: 'development' | 'production';
   webhook?: WebhookConfig;
   /** @deprecated Register skills with builder.useSkill(). */
   tools?: ToolDefinition[];
@@ -26,6 +27,7 @@ export interface CreateAgentOptions {
 
 export interface AgentInput {
   input: string;
+  requestId?: string;
   userId?: string;
   sessionId?: string;
   metadata?: Record<string, unknown>;
@@ -36,6 +38,7 @@ export interface AgentProgressEvent {
   message: string;
   data?: unknown;
   traceId: string;
+  requestId: string;
   at: string;
 }
 
@@ -50,12 +53,14 @@ export interface AgentOutput {
   errors?: string[];
   errorDetails?: AgentError[];
   traceId?: string;
+  requestId?: string;
 }
 
 export type AgentErrorCode =
   | 'guard_blocked'
   | 'runtime_error'
   | 'skill_not_found'
+  | 'skill_forbidden'
   | 'skill_input_invalid'
   | 'skill_output_invalid'
   | 'skill_timeout'
@@ -72,12 +77,16 @@ export interface AgentError {
 
 export interface SkillContext {
   traceId: string;
+  executionId: string;
+  attempt: number;
+  idempotencyKey: string;
+  signal: AbortSignal;
   sessionId?: string;
   userId?: string;
   metadata?: Record<string, unknown>;
   webhook: WebhookService;
   trace: TraceRun;
-  emitProgress?(event: Omit<AgentProgressEvent, 'traceId' | 'at'>): Promise<void>;
+  emitProgress?(event: Omit<AgentProgressEvent, 'traceId' | 'requestId' | 'at'>): Promise<void>;
 }
 
 export interface Skill<I = unknown, O = unknown> {
@@ -88,12 +97,13 @@ export interface Skill<I = unknown, O = unknown> {
   permission?: 'public' | 'external_api' | 'user_private';
   timeoutMs?: number;
   retry?: number;
+  idempotent?: boolean;
   tags?: string[];
   execute(input: I, context: SkillContext): Promise<O>;
 }
 
 export interface MemoryMessage {
-  role: 'user' | 'agent' | 'system';
+  role: 'user' | 'assistant' | 'system';
   content: string;
   data?: unknown;
   at: string;
@@ -158,7 +168,9 @@ export interface ExecutorContext {
   skills: SkillRegistryLike;
   trace: TraceRun;
   webhook: WebhookService;
-  emitProgress(event: Omit<AgentProgressEvent, 'traceId' | 'at'>): Promise<void>;
+  skillAuthorizer: SkillAuthorizer;
+  idempotencyKey?: string;
+  emitProgress(event: Omit<AgentProgressEvent, 'traceId' | 'requestId' | 'at'>): Promise<void>;
 }
 
 export interface Executor {
@@ -174,10 +186,49 @@ export interface Guard {
   check(context: AgentContext): GuardResult | Promise<GuardResult>;
 }
 
+export interface SkillAuthorizationContext {
+  skill: Skill;
+  input: unknown;
+  agentInput: AgentInput;
+}
+
+export interface SkillAuthorizationResult {
+  allowed: boolean;
+  reason?: string;
+}
+
+export interface SkillAuthorizer {
+  authorize(context: SkillAuthorizationContext): SkillAuthorizationResult | Promise<SkillAuthorizationResult>;
+}
+
 export interface TraceEvent {
   type: string;
   data?: unknown;
   at: string;
+}
+
+export interface TraceInputSummary {
+  inputLength: number;
+  hasSessionId: boolean;
+  hasUserId: boolean;
+}
+
+export interface TraceOutputSummary {
+  success: boolean;
+  intent: string;
+  errorCodes: string[];
+}
+
+export interface StandardTraceDocument {
+  formatVersion: '0.1';
+  traceId: string;
+  requestId: string;
+  startedAt: string;
+  endedAt?: string;
+  latencyMs?: number;
+  input: TraceInputSummary;
+  events: TraceEvent[];
+  finalOutput?: TraceOutputSummary;
 }
 
 export interface TraceRun {
@@ -191,6 +242,17 @@ export interface TraceProvider {
 
 export interface Agent {
   run(input: AgentInput): Promise<AgentOutput>;
+  invokeSkill(input: AgentSkillInvocation): Promise<AgentOutput>;
+}
+
+export interface AgentSkillInvocation {
+  skill: string;
+  input: unknown;
+  requestId?: string;
+  userId?: string;
+  sessionId?: string;
+  metadata?: Record<string, unknown>;
+  idempotencyKey?: string;
 }
 
 export interface SkillRegistryLike {
@@ -210,6 +272,7 @@ export interface ToolDefinition<I = unknown, O = unknown> {
   permission?: 'public' | 'external_api' | 'user_private';
   timeoutMs?: number;
   retry?: number;
+  idempotent?: boolean;
   handler(input: I, context: SkillContext): Promise<O>;
 }
 
