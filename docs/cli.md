@@ -21,7 +21,7 @@ Generated projects depend on `@agent-creator/core` and contain only configuratio
 
 Validates that the current directory looks like a generated Agent project.
 
-It checks required files, transpiles and loads `agent.config.ts`, validates the default export with the root zod `AgentConfig` schema, and verifies that configured tools have matching tool files.
+It checks required files, transpiles and loads `agent.config.ts`, validates the default export with the root zod `AgentConfig` schema, verifies that configured Skills, Guards, and Workflows are registered, checks matching generated files, and reports duplicate enabled names.
 
 If config loading fails, confirm that `agent.config.ts` has a valid default export and only uses config-time imports that can be resolved during validation.
 
@@ -56,6 +56,20 @@ This command remains for compatibility with projects that configure a file-backe
 ## `agent add skill <skillName>`
 
 Adds a typed `Skill` skeleton under `src/skills`, registers it in `src/skills/index.ts`, and records it in `agent.config.ts`.
+
+The generated skeleton includes input/output zod schemas, permission, timeout, retry defaults, direct-call metadata comments, and a small error handling shape. Skills should own narrow domain actions rather than broad orchestration.
+
+## `agent add guard <guardName>`
+
+Adds a generated `Guard` skeleton under `src/guards`, registers it in `src/guards/index.ts`, and records it in `agent.config.ts`.
+
+Generated projects compose all local guards into one runtime Guard and register it with `builder.useGuard(guard)`. Guards run before planning and should block unsafe, unauthorized, or out-of-domain requests before any Skill executes.
+
+## `agent add workflow <workflowName>`
+
+Adds a workflow skeleton as a tagged Skill under `src/skills`, registers it in `src/skills/index.ts`, and records it in both `skills.enabled` and `workflows.enabled`.
+
+Workflows are modeled as Skills in v0.1 so the core runtime remains small. A workflow Skill should coordinate multi-step domain work and call other domain services or Skills from explicit code rather than adding a new core orchestration primitive.
 
 ## `agent add tool <toolName>`
 

@@ -108,6 +108,24 @@ agent add skill calendar
 
 `src/index.ts` creates the Builder, registers every Skill from `src/skills/index.ts`, and calls `build()`.
 
+For vertical-domain Skill design, see `docs/skill-authoring.md`.
+
+Add Guards for safety, permissions, or domain-boundary checks:
+
+```bash
+agent add guard domain-policy
+```
+
+Generated projects compose Guards from `src/guards/index.ts` and register them before Skills run.
+
+Add workflow Skills for multi-step domain tasks:
+
+```bash
+agent add workflow customer-onboarding
+```
+
+Workflows are regular Skills tagged with `workflow`; this keeps the core runtime small while still allowing explicit orchestration.
+
 Webhook is available as a built-in optional Skill adapter:
 
 ```bash

@@ -105,6 +105,8 @@ Release mapping:
 
 `npm run build` without `--release` fails. Internal validation may use `npm run build:plain` when it must compile without changing versions.
 
+Both versioned and plain builds minify emitted workspace JavaScript with Terser before package checks or publishing. The minification is a packaging optimization, not a security boundary; generated project templates copied into the CLI package are not minified.
+
 ## Release Process
 
 Before a release:

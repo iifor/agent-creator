@@ -28,6 +28,12 @@ export const agentConfigSchema = z.object({
   skills: z.object({
     enabled: z.array(z.string().min(1)),
   }),
+  guards: z.object({
+    enabled: z.array(z.string().min(1)),
+  }).optional(),
+  workflows: z.object({
+    enabled: z.array(z.string().min(1)),
+  }).optional(),
 });
 
 export type AgentConfigShape = z.infer<typeof agentConfigSchema>;

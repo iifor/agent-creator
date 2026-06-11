@@ -13,7 +13,7 @@
     "package.json"
   ],
   "scripts": {
-    "build": "node ../../scripts/clean-cli.mjs && tsc -p tsconfig.json && node ../../scripts/copy-capabilities.mjs",
+    "build": "node ../../scripts/clean-cli.mjs && tsc -p tsconfig.json && node ../../scripts/minify-dist.mjs dist && node ../../scripts/copy-capabilities.mjs",
     "dev": "tsx src/index.ts",
     "test": "vitest run",
     "validate": "tsx src/index.ts validate",

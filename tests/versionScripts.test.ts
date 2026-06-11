@@ -4,6 +4,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
 import { buildCommitMessage } from '../scripts/commit.mjs';
+import { minifyDist } from '../scripts/minify-dist.mjs';
 
 describe('version scripts', () => {
   it('accepts valid conventional commit messages', async () => {
@@ -60,6 +61,31 @@ describe('version scripts', () => {
     const result = spawnSync('node', ['scripts/build.mjs'], { encoding: 'utf8' });
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('Missing required release type');
+  });
+
+  it('minifies JavaScript build output without touching excluded templates', async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'agent-minify-dist-'));
+    await fs.mkdir(path.join(dir, 'templates'), { recursive: true });
+    const runtimeFile = path.join(dir, 'index.js');
+    const templateFile = path.join(dir, 'templates', 'example.js');
+    const source = [
+      'const internalValue = 1 + 2;',
+      'export function readValue() {',
+      '  return internalValue;',
+      '}',
+      '',
+    ].join('\n');
+
+    await fs.writeFile(runtimeFile, source, 'utf8');
+    await fs.writeFile(templateFile, source, 'utf8');
+
+    await expect(minifyDist(dir, { excludePrefixes: ['templates'] })).resolves.toBe(1);
+
+    const runtimeOutput = await fs.readFile(runtimeFile, 'utf8');
+    const templateOutput = await fs.readFile(templateFile, 'utf8');
+    expect(runtimeOutput.length).toBeLessThan(source.length);
+    expect(runtimeOutput).not.toContain('internalValue');
+    expect(templateOutput).toBe(source);
   });
 });
 

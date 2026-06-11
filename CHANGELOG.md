@@ -6,6 +6,7 @@ All notable changes to Agent Creator are recorded here.
 
 ### Added
 
+- Added Terser minification for published workspace JavaScript build output while leaving generated project templates readable.
 - Added the publishable `@agent-creator/core` workspace package.
 - Added a Builder API for Skills, Memory, Planner, Executor, Model, Guard, and Trace modules.
 - Added required OpenAI-compatible `baseUrl`, `apiKey`, and `model` configuration.

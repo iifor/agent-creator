@@ -7,3 +7,7 @@ export const skills: Skill[] = [
 export const enabledSkillNames = [
   // agent-creator:skill-exports
 ];
+
+export const enabledWorkflowNames = [
+  // agent-creator:workflow-exports
+];

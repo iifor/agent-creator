@@ -31,21 +31,33 @@ import type { Skill } from '@agent-creator/core';
 // Call this skill directly by passing:
 // metadata: { skill: '${dottedName}', skillInput: { query: '...' } }
 const inputSchema = z.object({
-  query: z.string().min(1),
+  query: z.string().min(1).describe('The user or workflow request this skill should handle.'),
+  options: z.record(z.string(), z.unknown()).optional().describe('Domain-specific options for this skill.'),
 });
 
 const outputSchema = z.object({
   ok: z.boolean(),
   result: z.string(),
+  warnings: z.array(z.string()).optional(),
 });
 
 export const ${symbolName}: Skill<z.infer<typeof inputSchema>, z.infer<typeof outputSchema>> = {
   name: '${dottedName}',
-  description: 'Generated skill skeleton.',
+  description: 'Generated domain skill skeleton. Replace this with a task-specific description.',
   inputSchema,
   outputSchema,
+  permission: 'public',
+  timeoutMs: 30000,
+  retry: 0,
   async execute(input) {
-    return { ok: true, result: \`Handled \${input.query}\` };
+    try {
+      // Keep business logic narrow: validate inputs with the schema above, call one domain capability,
+      // and return a stable output shape for callers and workflows.
+      return { ok: true, result: \`Handled \${input.query}\` };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return { ok: false, result: 'Skill execution failed.', warnings: [message] };
+    }
   },
 };
 `;

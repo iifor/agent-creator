@@ -4,9 +4,19 @@
 
 ## Pending
 
-
 ## Done
 
+- [x] Validate generated project with Skill, Guard, and Workflow together
+- [x] Add generated project acceptance test for combined Skill, Guard, and Workflow scaffolds
+- [x] Strengthen agent validate for missing Guard and Workflow files
+- [x] Add duplicate enabled Skill, Guard, and Workflow name validation
+- [x] Add a complete vertical-domain example to docs/skill-authoring.md
+- [x] Improve workflow Skill template with partial failure and summary guidance
+- [x] Design Web Dev Console trace view before implementation
+- [x] Enhance generated Skill skeletons with clearer schemas, defaults, and error handling guidance
+- [x] Add generated project Guard extension registry and `agent add guard`
+- [x] Add workflow Skill scaffolding through `agent add workflow`
+- [x] Document vertical-domain Skill authoring boundaries
 - [x] Split the repository into core and CLI workspaces
 - [x] Add composable Agent Builder and required OpenAI-compatible model config
 - [x] Add Skill, Memory, Planner, Executor, Guard, Model, and Trace registration
@@ -53,9 +63,7 @@
 
 ## Later
 
-- [ ] add guard command
-- [ ] add workflow command
-- [ ] Web Dev Console
-- [ ] Real LLM provider
-- [ ] add RAG module
-- [ ] add multi-agent module
+- [ ] Build Web Dev Console for trace, Guard, Planner, Skill, and Workflow debugging
+- [ ] Expand OpenAI-compatible provider diagnostics and streaming support
+- [ ] Add RAG module as a Skill/module package
+- [ ] Add multi-agent module after Workflow, Guard, and Trace behavior stabilize

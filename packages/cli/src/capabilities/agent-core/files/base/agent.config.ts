@@ -30,6 +30,16 @@ const config = {
       // agent-creator:skills
     ],
   },
+  guards: {
+    enabled: [
+      // agent-creator:guards
+    ],
+  },
+  workflows: {
+    enabled: [
+      // agent-creator:workflows
+    ],
+  },
 };
 
 export default config;

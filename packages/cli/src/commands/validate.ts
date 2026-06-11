@@ -54,16 +54,69 @@ export async function validateCommand(): Promise<void> {
       }
     }
 
-    const enabledSkills = configResult.config?.skills.enabled ?? extractEnabledSkills(await readText(configPath));
+    const configText = await readText(configPath);
+    const enabledSkills = configResult.config?.skills.enabled ?? extractEnabledSkills(configText);
+    const enabledGuards = configResult.config?.guards?.enabled ?? extractNamedList(configText, 'guards');
+    const enabledWorkflows = configResult.config?.workflows?.enabled ?? extractNamedList(configText, 'workflows');
     const skillsIndex = await pathExists(path.join(cwd, 'src/skills/index.ts'))
       ? await readText(path.join(cwd, 'src/skills/index.ts'))
       : '';
+    const guardsIndex = await pathExists(path.join(cwd, 'src/guards/index.ts'))
+      ? await readText(path.join(cwd, 'src/guards/index.ts'))
+      : '';
+    validateUniqueNames('skill', enabledSkills, issues);
+    validateUniqueNames('guard', enabledGuards, issues);
+    validateUniqueNames('workflow', enabledWorkflows, issues);
+
+    const workflowSet = new Set(enabledWorkflows);
     for (const skill of enabledSkills) {
       if (!skillsIndex.includes(`'${skill}'`)) {
         issues.push({
           location: 'agent.config.ts',
           reason: `Enabled skill "${skill}" is not registered in src/skills/index.ts.`,
           fix: 'Register the skill with agent add skill or remove it from skills.enabled.',
+        });
+      }
+      const skillFile = `src/skills/${skillFileName(skill)}.ts`;
+      if (!workflowSet.has(skill) && !(await pathExists(path.join(cwd, skillFile)))) {
+        issues.push({
+          location: skillFile,
+          reason: `Enabled skill "${skill}" does not have a matching Skill file.`,
+          fix: `Restore ${skillFile}, run agent add skill ${skill.replace(/\./g, '-')}, or remove it from skills.enabled.`,
+        });
+      }
+    }
+    for (const guard of enabledGuards) {
+      if (!guardsIndex.includes(`'${guard}'`)) {
+        issues.push({
+          location: 'agent.config.ts',
+          reason: `Enabled guard "${guard}" is not registered in src/guards/index.ts.`,
+          fix: 'Register the guard with agent add guard or remove it from guards.enabled.',
+        });
+      }
+      const guardFile = `src/guards/${guard}.ts`;
+      if (!(await pathExists(path.join(cwd, guardFile)))) {
+        issues.push({
+          location: guardFile,
+          reason: `Enabled guard "${guard}" does not have a matching Guard file.`,
+          fix: `Restore ${guardFile}, run agent add guard ${guard}, or remove it from guards.enabled.`,
+        });
+      }
+    }
+    for (const workflow of enabledWorkflows) {
+      if (!skillsIndex.includes(`'${workflow}'`)) {
+        issues.push({
+          location: 'agent.config.ts',
+          reason: `Enabled workflow "${workflow}" is not registered in src/skills/index.ts.`,
+          fix: 'Register the workflow with agent add workflow or remove it from workflows.enabled.',
+        });
+      }
+      const workflowFile = `src/skills/${skillFileName(workflow)}-workflow.ts`;
+      if (!(await pathExists(path.join(cwd, workflowFile)))) {
+        issues.push({
+          location: workflowFile,
+          reason: `Enabled workflow "${workflow}" does not have a matching workflow Skill file.`,
+          fix: `Restore ${workflowFile}, run agent add workflow ${workflow.replace(/\./g, '-')}, or remove it from workflows.enabled.`,
         });
       }
     }
@@ -128,9 +181,33 @@ async function validateCoreDependency(cwd: string, issues: ValidationIssue[]): P
 }
 
 function extractEnabledSkills(configText: string): string[] {
-  const match = configText.match(/enabled:\s*\[([\s\S]*?)\]/m);
+  return extractNamedList(configText, 'skills');
+}
+
+function extractNamedList(configText: string, key: string): string[] {
+  const match = configText.match(new RegExp(`${key}:\\s*{[\\s\\S]*?enabled:\\s*\\[([\\s\\S]*?)\\]`, 'm'));
   if (!match) return [];
   return [...match[1].matchAll(/'([^']+)'/g)].map((item) => item[1]);
+}
+
+function validateUniqueNames(kind: 'skill' | 'guard' | 'workflow', names: string[], issues: ValidationIssue[]): void {
+  const seen = new Set<string>();
+  const duplicates = new Set<string>();
+  for (const name of names) {
+    if (seen.has(name)) duplicates.add(name);
+    seen.add(name);
+  }
+  for (const duplicate of duplicates) {
+    issues.push({
+      location: `agent.config.ts:${kind}s.enabled`,
+      reason: `Duplicate enabled ${kind} "${duplicate}".`,
+      fix: `Keep one "${duplicate}" entry in ${kind}s.enabled and remove the duplicate entries.`,
+    });
+  }
+}
+
+function skillFileName(name: string): string {
+  return name.replace(/\.run$/, '').replace(/\./g, '-');
 }
 
 async function loadAndValidateConfig(configPath: string): Promise<{ config?: AgentConfigShape; issues: ValidationIssue[] }> {

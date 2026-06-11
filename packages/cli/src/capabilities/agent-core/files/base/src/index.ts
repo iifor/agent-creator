@@ -1,5 +1,6 @@
 import { createAgent, type Agent } from '@agent-creator/core';
 import config from '../agent.config.js';
+import { guard } from './guards/index.js';
 import { skills } from './skills/index.js';
 
 let configuredAgent: Agent | undefined;
@@ -7,6 +8,7 @@ let configuredAgent: Agent | undefined;
 export function getAgent(): Agent {
   if (configuredAgent) return configuredAgent;
   const builder = createAgent({ model: config.model, webhook: config.webhook });
+  builder.useGuard(guard);
   for (const skill of skills) builder.useSkill(skill);
   configuredAgent = builder.build();
   return configuredAgent;

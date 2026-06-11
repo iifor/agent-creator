@@ -1,6 +1,8 @@
 import { Command } from 'commander';
+import { addGuardCommand } from '../commands/addGuard.js';
 import { addSkillCommand } from '../commands/addSkill.js';
 import { addToolCommand } from '../commands/addTool.js';
+import { addWorkflowCommand } from '../commands/addWorkflow.js';
 import { createCommand } from '../commands/create.js';
 import { devCommand } from '../commands/dev.js';
 import { traceCommand } from '../commands/trace.js';
@@ -59,6 +61,16 @@ export function buildCli(): Command {
     .command('skill')
     .argument('<skillName>', 'skill name')
     .action(addSkillCommand);
+  add
+    .command('guard')
+    .argument('<guardName>', 'guard name')
+    .description('Add a generated Guard skeleton and register it in the generated Agent.')
+    .action(addGuardCommand);
+  add
+    .command('workflow')
+    .argument('<workflowName>', 'workflow name')
+    .description('Add a generated workflow Skill skeleton.')
+    .action(addWorkflowCommand);
   add
     .command('tool')
     .argument('<toolName>', 'tool name')

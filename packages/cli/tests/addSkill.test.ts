@@ -18,6 +18,9 @@ describe('add skill command', () => {
       await expect(fs.access('src/skills/calendar.ts')).resolves.toBeUndefined();
       expect(await fs.readFile('src/skills/index.ts', 'utf8')).toContain('calendarSkill');
       expect(await fs.readFile('agent.config.ts', 'utf8')).toContain("'calendar.run'");
+      const skill = await fs.readFile('src/skills/calendar.ts', 'utf8');
+      expect(skill).toContain("permission: 'public'");
+      expect(skill).toContain('timeoutMs: 30000');
     } finally {
       process.chdir(previous);
     }

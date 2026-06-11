@@ -17,7 +17,7 @@
     "package.json"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && node ../../scripts/minify-dist.mjs dist",
     "test": "vitest run",
     "check:package": "npm pack --dry-run --json"
   },
